@@ -1,0 +1,26 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import VideoUpload from './pages/VideoUpload'
+import VideoAnalysis from './pages/VideoAnalysis'
+import TrainingQueue from './pages/TrainingQueue'
+import ModelConfig from './pages/ModelConfig'
+
+function App() {
+  return (
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/upload" element={<VideoUpload />} />
+          <Route path="/video/:videoId" element={<VideoAnalysis />} />
+          <Route path="/training" element={<TrainingQueue />} />
+          <Route path="/models" element={<ModelConfig />} />
+        </Routes>
+      </Layout>
+    </Router>
+  )
+}
+
+export default App
+

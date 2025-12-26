@@ -1,0 +1,27 @@
+FROM continuumio/miniconda3:latest
+
+WORKDIR /app
+
+# Install mamba
+RUN conda install -y mamba -n base -c conda-forge
+
+# Copy environment file
+COPY services/fusion-service/environment.yml /app/environment.yml
+
+# Create conda environment
+RUN mamba env create -f /app/environment.yml && \
+    mamba clean -afy
+
+# Make RUN commands use the new environment
+SHELL ["conda", "run", "-n", "fusion-service", "/bin/bash", "-c"]
+
+# Copy application code
+COPY services/fusion-service/ /app/
+COPY shared/ /app/shared/
+
+# Set environment variables
+ENV PATH /opt/conda/envs/fusion-service/bin:$PATH
+
+# Run the application
+CMD ["conda", "run", "-n", "fusion-service", "python", "app/main.py"]
+
