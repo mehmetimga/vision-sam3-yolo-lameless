@@ -64,6 +64,16 @@ data/results/*
 shared/models/*
 !shared/models/.gitkeep
 
+# YOLOv8 pose models (root level)
+yolov8m-pose.pt
+yolov8n-pose.pt
+
+# Cow pose models
+data/models/cow_pose_combined.pt
+data/models/cow_pose_full.pt
+data/models/cow_pose_yolov8n.pt
+data/models/rtmpose/
+
 # IDE
 .vscode/
 .idea/

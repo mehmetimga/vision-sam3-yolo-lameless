@@ -1,0 +1,564 @@
+/**
+ * Video Results Page
+ * Comprehensive view of all pipeline results for a video
+ */
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  Activity,
+  Brain,
+  Eye,
+  Network,
+  Cpu,
+  GitMerge,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  Play,
+  Loader2,
+  BarChart3,
+  Users
+} from 'lucide-react'
+
+const API_BASE = '/api'
+
+interface PipelineResult {
+  status: 'success' | 'error' | 'pending' | 'not_available'
+  data: any
+  error?: string
+}
+
+interface AllResults {
+  yolo: PipelineResult
+  sam3: PipelineResult
+  dinov3: PipelineResult
+  tleap: PipelineResult
+  tcn: PipelineResult
+  transformer: PipelineResult
+  gnn: PipelineResult
+  ml: PipelineResult
+  fusion: PipelineResult
+}
+
+export default function VideoResults() {
+  const { videoId } = useParams<{ videoId: string }>()
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(true)
+  const [videoInfo, setVideoInfo] = useState<any>(null)
+  const [results, setResults] = useState<AllResults | null>(null)
+  const [expandedPipelines, setExpandedPipelines] = useState<Set<string>>(new Set(['fusion']))
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (videoId) {
+      loadAllResults()
+    }
+  }, [videoId])
+
+  const loadAllResults = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Load video info
+      const videoResponse = await fetch(`${API_BASE}/videos/${videoId}`)
+      if (videoResponse.ok) {
+        setVideoInfo(await videoResponse.json())
+      }
+
+      // Load all pipeline results
+      const pipelines = ['yolo', 'sam3', 'dinov3', 'tleap', 'tcn', 'transformer', 'gnn', 'ml', 'fusion']
+      const resultPromises = pipelines.map(async (pipeline) => {
+        try {
+          const response = await fetch(`${API_BASE}/analysis/${videoId}/${pipeline}`)
+          if (response.ok) {
+            const data = await response.json()
+            return { pipeline, result: { status: 'success' as const, data } }
+          } else if (response.status === 404) {
+            return { pipeline, result: { status: 'not_available' as const, data: null } }
+          } else {
+            return { pipeline, result: { status: 'error' as const, data: null, error: 'Failed to load' } }
+          }
+        } catch (err) {
+          return { pipeline, result: { status: 'error' as const, data: null, error: String(err) } }
+        }
+      })
+
+      const allResults = await Promise.all(resultPromises)
+      const resultsMap: any = {}
+      allResults.forEach(({ pipeline, result }) => {
+        resultsMap[pipeline] = result
+      })
+      setResults(resultsMap)
+    } catch (err) {
+      setError('Failed to load results')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const togglePipeline = (pipeline: string) => {
+    setExpandedPipelines(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(pipeline)) {
+        newSet.delete(pipeline)
+      } else {
+        newSet.add(pipeline)
+      }
+      return newSet
+    })
+  }
+
+  const getPipelineIcon = (pipeline: string) => {
+    switch (pipeline) {
+      case 'yolo': return <Eye className="h-5 w-5" />
+      case 'sam3': return <Activity className="h-5 w-5" />
+      case 'dinov3': return <Brain className="h-5 w-5" />
+      case 'tleap': return <Users className="h-5 w-5" />
+      case 'tcn': return <BarChart3 className="h-5 w-5" />
+      case 'transformer': return <Cpu className="h-5 w-5" />
+      case 'gnn': return <Network className="h-5 w-5" />
+      case 'ml': return <GitMerge className="h-5 w-5" />
+      case 'fusion': return <GitMerge className="h-5 w-5 text-primary" />
+      default: return <Activity className="h-5 w-5" />
+    }
+  }
+
+  const getPipelineDescription = (pipeline: string) => {
+    switch (pipeline) {
+      case 'yolo': return 'Object Detection - Cow detection with bounding boxes'
+      case 'sam3': return 'Segmentation - Instance segmentation masks'
+      case 'dinov3': return 'Visual Embeddings - Feature extraction & similarity'
+      case 'tleap': return 'Pose Estimation - 20-keypoint tracking'
+      case 'tcn': return 'Temporal CNN - Sequence classification'
+      case 'transformer': return 'Gait Transformer - Attention-based analysis'
+      case 'gnn': return 'Graph Neural Network - Relational learning'
+      case 'ml': return 'ML Ensemble - Gradient boosting models'
+      case 'fusion': return 'Final Fusion - Combined prediction'
+      default: return ''
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />
+      case 'error': return <XCircle className="h-5 w-5 text-red-500" />
+      case 'pending': return <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
+      case 'not_available': return <AlertCircle className="h-5 w-5 text-gray-400" />
+      default: return null
+    }
+  }
+
+  const renderYoloResults = (data: any) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Detections</div>
+          <div className="text-2xl font-bold">{data.features?.num_detections || data.detections?.length || 0}</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Avg Confidence</div>
+          <div className="text-2xl font-bold">{((data.features?.avg_confidence || 0) * 100).toFixed(1)}%</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Position Stability</div>
+          <div className="text-2xl font-bold">{(data.features?.position_stability || 0).toFixed(3)}</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Detection Rate</div>
+          <div className="text-2xl font-bold">{((data.features?.detection_rate || 0) * 100).toFixed(1)}%</div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderTleapResults = (data: any) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Frames Processed</div>
+          <div className="text-2xl font-bold">{data.frames_processed || 0}</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Lameness Score</div>
+          <div className="text-2xl font-bold">
+            {data.locomotion_features?.lameness_score?.toFixed(3) || 'N/A'}
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Head Bob</div>
+          <div className="text-2xl font-bold">
+            {data.locomotion_features?.head_bob_magnitude?.toFixed(3) || 'N/A'}
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Back Arch</div>
+          <div className="text-2xl font-bold">
+            {data.locomotion_features?.back_arch_mean?.toFixed(3) || 'N/A'}
+          </div>
+        </div>
+      </div>
+      {data.pose_sequences && data.pose_sequences.length > 0 && (
+        <div className="text-sm text-muted-foreground">
+          {data.pose_sequences[0].keypoints?.length || 0} keypoints tracked per frame
+        </div>
+      )}
+    </div>
+  )
+
+  const renderTcnResults = (data: any) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Severity Score</div>
+          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+            {(data.severity_score * 100).toFixed(1)}%
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Uncertainty</div>
+          <div className="text-2xl font-bold">{(data.uncertainty * 100).toFixed(2)}%</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Prediction</div>
+          <div className={`text-2xl font-bold ${data.prediction === 1 ? 'text-red-500' : 'text-green-500'}`}>
+            {data.prediction === 1 ? 'Lame' : 'Healthy'}
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Input Frames</div>
+          <div className="text-2xl font-bold">{data.input_frames || 0}</div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderGnnResults = (data: any) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Severity Score</div>
+          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+            {(data.severity_score * 100).toFixed(1)}%
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Uncertainty</div>
+          <div className="text-2xl font-bold">{((data.uncertainty || 0) * 100).toFixed(2)}%</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Graph Nodes</div>
+          <div className="text-2xl font-bold">{data.graph_info?.num_nodes || 'N/A'}</div>
+        </div>
+      </div>
+      {data.neighbor_influence && data.neighbor_influence.length > 0 && (
+        <div>
+          <div className="text-sm font-medium mb-2">Similar Videos (Neighbors)</div>
+          <div className="space-y-1">
+            {data.neighbor_influence.slice(0, 5).map((neighbor: any, idx: number) => (
+              <div key={idx} className="flex justify-between text-sm bg-muted/30 px-3 py-2 rounded">
+                <span className="font-mono text-xs">{neighbor.video_id.slice(0, 8)}...</span>
+                <span className={neighbor.score > 0.5 ? 'text-red-500' : 'text-green-500'}>
+                  {(neighbor.score * 100).toFixed(1)}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderDinov3Results = (data: any) => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Neighbor Evidence</div>
+          <div className={`text-2xl font-bold ${data.neighbor_evidence > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+            {(data.neighbor_evidence * 100).toFixed(1)}%
+          </div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Similar Cases</div>
+          <div className="text-2xl font-bold">{data.similar_cases?.length || 0}</div>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="text-sm text-muted-foreground">Embedding Dim</div>
+          <div className="text-2xl font-bold">{data.embedding_dim || 768}</div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderMlResults = (data: any) => {
+    const ensemble = data.ensemble || {}
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Ensemble Probability</div>
+            <div className={`text-2xl font-bold ${(ensemble.probability || 0) > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+              {((ensemble.probability || 0) * 100).toFixed(1)}%
+            </div>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Prediction</div>
+            <div className={`text-2xl font-bold ${ensemble.prediction === 1 ? 'text-red-500' : 'text-green-500'}`}>
+              {ensemble.prediction === 1 ? 'Lame' : 'Healthy'}
+            </div>
+          </div>
+        </div>
+        {ensemble.weights && (
+          <div>
+            <div className="text-sm font-medium mb-2">Model Weights</div>
+            <div className="flex gap-4 text-sm">
+              {Object.entries(ensemble.weights).map(([model, weight]) => (
+                <div key={model} className="bg-muted/30 px-3 py-1 rounded">
+                  {model}: {((weight as number) * 100).toFixed(0)}%
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderFusionResults = (data: any) => {
+    const fusion = data.fusion_result || data
+    return (
+      <div className="space-y-6">
+        {/* Main Result */}
+        <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
+          <div className="text-sm text-muted-foreground mb-2">Final Lameness Prediction</div>
+          <div className={`text-5xl font-bold mb-2 ${
+            fusion.final_prediction === 1 ? 'text-red-500' : 'text-green-500'
+          }`}>
+            {fusion.final_prediction === 1 ? 'LAME' : 'HEALTHY'}
+          </div>
+          <div className="text-lg text-muted-foreground">
+            Confidence: {((fusion.final_probability || 0) * 100).toFixed(1)}%
+          </div>
+          {/* Confidence bar */}
+          <div className="mt-4 max-w-md mx-auto">
+            <div className="h-4 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full relative">
+              <div
+                className="absolute top-1/2 w-1 h-6 bg-black rounded -translate-y-1/2 shadow-lg"
+                style={{ left: `${(fusion.final_probability || 0.5) * 100}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>Healthy (0%)</span>
+              <span>Lame (100%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Pipeline Contributions */}
+        {fusion.pipeline_contributions && (
+          <div>
+            <div className="text-sm font-medium mb-3">Pipeline Contributions</div>
+            <div className="space-y-2">
+              {Object.entries(fusion.pipeline_contributions).map(([pipeline, value]) => {
+                if (value === null) return null
+                const score = typeof value === 'object' ? (value as any).probability : value
+                if (score === null || score === undefined) return null
+                return (
+                  <div key={pipeline} className="flex items-center gap-3">
+                    <div className="w-24 text-sm capitalize">{pipeline}</div>
+                    <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all ${
+                          score > 0.5 ? 'bg-red-400' : 'bg-green-400'
+                        }`}
+                        style={{ width: `${score * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-16 text-right text-sm font-medium">
+                      {(score * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderPipelineResults = (pipeline: string, data: any) => {
+    switch (pipeline) {
+      case 'yolo': return renderYoloResults(data)
+      case 'tleap': return renderTleapResults(data)
+      case 'tcn': return renderTcnResults(data)
+      case 'transformer': return renderTcnResults(data) // Same structure
+      case 'gnn': return renderGnnResults(data)
+      case 'dinov3': return renderDinov3Results(data)
+      case 'ml': return renderMlResults(data)
+      case 'fusion': return renderFusionResults(data)
+      default:
+        return (
+          <pre className="text-xs bg-muted p-4 rounded overflow-auto max-h-64">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        )
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading pipeline results...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold mb-2">Failed to load results</h2>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    )
+  }
+
+  const pipelineOrder = ['fusion', 'yolo', 'sam3', 'dinov3', 'tleap', 'tcn', 'transformer', 'gnn', 'ml']
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/')}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold">Pipeline Results</h1>
+            <p className="text-sm text-muted-foreground font-mono">{videoId}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(`/video/${videoId}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+          >
+            <Play className="h-4 w-4" />
+            View Video
+          </button>
+          <button
+            onClick={loadAllResults}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Video Info */}
+      {videoInfo && (
+        <div className="bg-card border rounded-lg p-4">
+          <div className="flex items-center gap-6 text-sm">
+            <div>
+              <span className="text-muted-foreground">Filename:</span>{' '}
+              <span className="font-medium">{videoInfo.filename}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Size:</span>{' '}
+              <span className="font-medium">{(videoInfo.file_size / 1024 / 1024).toFixed(2)} MB</span>
+            </div>
+            {videoInfo.metadata && (
+              <>
+                <div>
+                  <span className="text-muted-foreground">Duration:</span>{' '}
+                  <span className="font-medium">{videoInfo.metadata.duration?.toFixed(1)}s</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Resolution:</span>{' '}
+                  <span className="font-medium">{videoInfo.metadata.width}x{videoInfo.metadata.height}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pipeline Results */}
+      <div className="space-y-4">
+        {results && pipelineOrder.map(pipeline => {
+          const result = results[pipeline as keyof AllResults]
+          if (!result) return null
+
+          const isExpanded = expandedPipelines.has(pipeline)
+
+          return (
+            <div key={pipeline} className={`border rounded-lg overflow-hidden ${
+              pipeline === 'fusion' ? 'border-primary/50 bg-primary/5' : 'bg-card'
+            }`}>
+              {/* Header */}
+              <button
+                onClick={() => togglePipeline(pipeline)}
+                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {getPipelineIcon(pipeline)}
+                  <div className="text-left">
+                    <div className="font-semibold uppercase">{pipeline}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {getPipelineDescription(pipeline)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(result.status)}
+                  {isExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+              </button>
+
+              {/* Content */}
+              {isExpanded && (
+                <div className="border-t p-4">
+                  {result.status === 'success' && result.data ? (
+                    renderPipelineResults(pipeline, result.data)
+                  ) : result.status === 'not_available' ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p>No results available for this pipeline</p>
+                      <p className="text-sm">The pipeline may not have processed this video yet</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-red-500">
+                      <XCircle className="h-8 w-8 mx-auto mb-2" />
+                      <p>Failed to load results</p>
+                      {result.error && <p className="text-sm">{result.error}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

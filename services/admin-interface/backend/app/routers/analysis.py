@@ -41,15 +41,15 @@ async def get_analysis(video_id: str):
 async def get_analysis_summary(video_id: str):
     """Get analysis summary"""
     fusion_file = RESULTS_DIR / "fusion" / f"{video_id}_fusion.json"
-    
+
     if not fusion_file.exists():
         raise HTTPException(status_code=404, detail="Analysis not found")
-    
+
     with open(fusion_file) as f:
         fusion_data = json.load(f)
-    
+
     fusion_result = fusion_data.get("fusion_result", {})
-    
+
     return {
         "video_id": video_id,
         "final_probability": fusion_result.get("final_probability", 0.5),
@@ -57,4 +57,48 @@ async def get_analysis_summary(video_id: str):
         "prediction_label": "lame" if fusion_result.get("final_prediction", 0) == 1 else "sound",
         "pipeline_contributions": fusion_result.get("pipeline_contributions", {})
     }
+
+
+@router.get("/{video_id}/all")
+async def get_all_pipeline_results(video_id: str):
+    """Get all pipeline results for a video"""
+    pipelines = ["yolo", "sam3", "dinov3", "tleap", "tcn", "transformer", "gnn", "ml", "fusion"]
+
+    results = {
+        "video_id": video_id,
+        "pipelines": {}
+    }
+
+    for pipeline in pipelines:
+        result_file = RESULTS_DIR / pipeline / f"{video_id}_{pipeline}.json"
+        if result_file.exists():
+            with open(result_file) as f:
+                results["pipelines"][pipeline] = {
+                    "status": "success",
+                    "data": json.load(f)
+                }
+        else:
+            results["pipelines"][pipeline] = {
+                "status": "not_available",
+                "data": None
+            }
+
+    return results
+
+
+@router.get("/{video_id}/{pipeline}")
+async def get_pipeline_result(video_id: str, pipeline: str):
+    """Get individual pipeline result for a video"""
+    valid_pipelines = ["yolo", "sam3", "dinov3", "tleap", "tcn", "transformer", "gnn", "ml", "fusion"]
+
+    if pipeline not in valid_pipelines:
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline. Must be one of: {valid_pipelines}")
+
+    result_file = RESULTS_DIR / pipeline / f"{video_id}_{pipeline}.json"
+
+    if not result_file.exists():
+        raise HTTPException(status_code=404, detail=f"No {pipeline} results found for this video")
+
+    with open(result_file) as f:
+        return json.load(f)
 
