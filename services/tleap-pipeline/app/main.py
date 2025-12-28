@@ -38,13 +38,29 @@ import numpy as np
 import yaml
 from shared.utils.nats_client import NATSClient
 
-# Keypoint names (20 keypoints from Animal Pose Dataset)
+# Keypoint names (20 keypoints from Roboflow Cow Pose Dataset)
+# CORRECTED to match actual Roboflow model output
 KEYPOINT_NAMES = [
-    'left_eye', 'right_eye', 'nose', 'left_ear', 'right_ear',
-    'left_front_elbow', 'right_front_elbow', 'left_back_elbow', 'right_back_elbow',
-    'left_front_knee', 'right_front_knee', 'left_back_knee', 'right_back_knee',
-    'left_front_paw', 'right_front_paw', 'left_back_paw', 'right_back_paw',
-    'throat', 'withers', 'tailbase'
+    'left_ear_base',          # 0  - Left ear base / head area
+    'neck',                   # 1  - Neck junction
+    'withers',                # 2  - Withers (top of shoulders)
+    'mid_back',               # 3  - Mid-back (spine)
+    'right_hind_hip',         # 4  - Right hind hip
+    'right_hind_mid_leg',     # 5  - Right hind mid leg
+    'right_hind_fetlock',     # 6  - Right hind fetlock
+    'left_hind_shoulder',     # 7  - Left hind hip/shoulder
+    'left_hind_mid_leg',      # 8  - Left hind mid leg
+    'left_hind_fetlock',      # 9  - Left hind fetlock
+    'right_front_shoulder',   # 10 - Right front shoulder
+    'right_front_mid_leg',    # 11 - Right front mid leg
+    'right_front_lower_leg',  # 12 - Right front lower leg
+    'left_front_shoulder',    # 13 - Left front shoulder
+    'left_front_mid_leg',     # 14 - Left front mid leg
+    'left_front_lower_leg',   # 15 - Left front lower leg
+    'right_front_hoof',       # 16 - Right front hoof
+    'left_front_hoof',        # 17 - Left front hoof
+    'right_hind_hoof',        # 18 - Right hind hoof
+    'left_hind_hoof',         # 19 - Left hind hoof
 ]
 
 # Skeleton connections

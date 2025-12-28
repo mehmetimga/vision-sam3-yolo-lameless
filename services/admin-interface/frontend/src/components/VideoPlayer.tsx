@@ -23,6 +23,7 @@ export default function VideoPlayer({
   const [hasAnnotated, setHasAnnotated] = useState(false)
   const [isAnnotating, setIsAnnotating] = useState(false)
   const [annotationProgress, setAnnotationProgress] = useState(0)
+  const [annotationMessage, setAnnotationMessage] = useState('')
   const [videoMetadata, setVideoMetadata] = useState<any>(null)
 
   // Load video metadata and check for annotations
@@ -43,6 +44,8 @@ export default function VideoPlayer({
   useEffect(() => {
     if (!isAnnotating) return
 
+    let tleapStartTime = Date.now()
+
     const checkStatus = async () => {
       try {
         const status = await videosApi.getAnnotationStatus(videoId)
@@ -53,11 +56,24 @@ export default function VideoPlayer({
           setIsAnnotating(false)
           setHasAnnotated(true)
           setAnnotationProgress(100)
+          setAnnotationMessage('Complete!')
           setShowAnnotated(true) // Auto-show annotations when complete
         } else if (status.status === 'rendering' || status.status === 'processing') {
-          setAnnotationProgress(Math.round(status.progress || 0))
+          // Rendering phase: show 50-100% (annotation rendering after T-LEAP)
+          const renderProgress = Math.round(status.progress || 0)
+          const adjustedProgress = 50 + (renderProgress * 0.5) // 50-100%
+          setAnnotationProgress(adjustedProgress)
+          setAnnotationMessage(`Rendering video... ${renderProgress}%`)
         } else if (status.status === 'starting') {
-          setAnnotationProgress(5) // Show small progress for starting state
+          setAnnotationProgress(45) // Starting render after T-LEAP
+          setAnnotationMessage('Starting video render...')
+        } else if (status.status === 'not_found') {
+          // T-LEAP is processing - show progress 0-50% based on time elapsed
+          // Typical T-LEAP takes 10-30 seconds for short videos
+          const elapsed = (Date.now() - tleapStartTime) / 1000
+          const estimatedProgress = Math.min(45, Math.round(elapsed * 1.5)) // ~30 sec to reach 45%
+          setAnnotationProgress(estimatedProgress)
+          setAnnotationMessage('Analyzing pose with AI... 🦴')
         } else if (status.status === 'error' || status.status === 'failed') {
           setIsAnnotating(false)
           alert('Annotation failed: ' + (status.error || status.message || 'Unknown error'))
@@ -67,9 +83,9 @@ export default function VideoPlayer({
       }
     }
 
-    // Check immediately then every 1 second
+    // Check immediately then every 500ms for smoother updates
     checkStatus()
-    const interval = setInterval(checkStatus, 1000)
+    const interval = setInterval(checkStatus, 500)
     return () => clearInterval(interval)
   }, [isAnnotating, videoId])
 
@@ -149,6 +165,7 @@ export default function VideoPlayer({
   const handleTriggerAnnotation = async () => {
     setIsAnnotating(true)
     setAnnotationProgress(0)
+    setAnnotationMessage('Starting...')
     try {
       const result = await videosApi.triggerAnnotation(videoId, {
         include_yolo: true,
@@ -222,14 +239,16 @@ export default function VideoPlayer({
         {isAnnotating && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
             <div className="text-center text-white">
-              <div className="mb-2">Generating annotated video...</div>
-              <div className="w-48 bg-gray-700 rounded-full h-2">
+              <div className="mb-3 text-lg font-medium">
+                {annotationMessage || 'Generating annotated video...'}
+              </div>
+              <div className="w-64 bg-gray-700 rounded-full h-3">
                 <div
-                  className="bg-blue-500 h-2 rounded-full transition-all"
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-300"
                   style={{ width: `${annotationProgress}%` }}
                 />
               </div>
-              <div className="mt-2 text-sm">{annotationProgress}%</div>
+              <div className="mt-2 text-sm text-gray-300">{annotationProgress}%</div>
             </div>
           </div>
         )}
