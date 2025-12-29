@@ -438,40 +438,66 @@ export default function PipelineAnalysis() {
           {/* Pipeline Tabs Section */}
           <div className="col-span-7">
             <div className="bg-white rounded-lg shadow">
-              {/* Tab Navigation */}
-              <div className="border-b overflow-x-auto">
-                <div className="flex min-w-max">
-                  {(Object.keys(PIPELINE_CONFIG) as PipelineKey[]).map((key) => {
-                    const config = PIPELINE_CONFIG[key]
-                    const result = results[key]
-                    const Icon = config.icon
-                    const isActive = activeTab === key
+              {/* Tab Navigation - Compact Icon Grid */}
+              <div className="border-b p-3">
+                <div className="flex items-center gap-3">
+                  {/* Current Tab Label */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {(() => {
+                      const config = PIPELINE_CONFIG[activeTab]
+                      const Icon = config.icon
+                      return (
+                        <>
+                          <Icon className={`w-5 h-5 ${getColorClass(config.color, 'text')}`} />
+                          <span className="font-medium text-gray-800">{config.name}</span>
+                        </>
+                      )
+                    })()}
+                  </div>
+                  <div className="h-6 w-px bg-gray-200" />
+                  {/* Icon Tab Buttons */}
+                  <div className="flex flex-wrap gap-1">
+                    {(Object.keys(PIPELINE_CONFIG) as PipelineKey[]).map((key) => {
+                      const config = PIPELINE_CONFIG[key]
+                      const result = results[key]
+                      const Icon = config.icon
+                      const isActive = activeTab === key
 
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setActiveTab(key)}
-                        className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
-                          isActive
-                            ? `border-${config.color}-500 ${getColorClass(config.color, 'text')}`
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span className="text-sm font-medium">{config.name}</span>
-                        {key !== 'summary' && result && (
-                          <StatusIcon status={result.status} />
-                        )}
-                      </button>
-                    )
-                  })}
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => setActiveTab(key)}
+                          title={`${config.name}: ${config.description}`}
+                          className={`relative p-2 rounded-lg transition-all ${
+                            isActive
+                              ? `${getColorClass(config.color, 'bg')} ${getColorClass(config.color, 'text')} ring-2 ring-offset-1 ring-${config.color}-400`
+                              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          {/* Status indicator dot */}
+                          {key !== 'summary' && result && (
+                            <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${
+                              result.status === 'success' ? 'bg-green-500' :
+                              result.status === 'error' ? 'bg-red-500' :
+                              result.status === 'pending' ? 'bg-yellow-500' : 'bg-gray-300'
+                            }`} />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
+                {/* Tab Description */}
+                <p className="text-xs text-gray-500 mt-2">
+                  {PIPELINE_CONFIG[activeTab].description}
+                </p>
               </div>
 
               {/* Tab Content */}
               <div className="p-6 min-h-[500px]">
                 {activeTab === 'summary' && (
-                  <SummaryTab results={results} />
+                  <SummaryTab results={results} onTabChange={setActiveTab} />
                 )}
                 {activeTab === 'yolo' && (
                   <YoloTab data={results.yolo?.data} />
@@ -518,7 +544,7 @@ export default function PipelineAnalysis() {
 // ============== TAB COMPONENTS ==============
 
 // Summary Tab - Overview of all pipelines
-function SummaryTab({ results }: { results: AllResults }) {
+function SummaryTab({ results, onTabChange }: { results: AllResults; onTabChange: (tab: PipelineKey) => void }) {
   const pipelines = ['yolo', 'sam3', 'dinov3', 'tleap', 'tcn', 'transformer', 'gnn', 'graph_transformer', 'ml', 'fusion']
 
   const getMetricDisplay = (key: string, data: any) => {
@@ -558,6 +584,7 @@ function SummaryTab({ results }: { results: AllResults }) {
       {/* Pipeline Grid */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Pipeline Results</h3>
+        <p className="text-sm text-gray-500 mb-3">Click on any pipeline card to view detailed results</p>
         <div className="grid grid-cols-5 gap-3">
           {pipelines.map((key) => {
             const config = PIPELINE_CONFIG[key as PipelineKey]
@@ -566,12 +593,13 @@ function SummaryTab({ results }: { results: AllResults }) {
             const Icon = config.icon
 
             return (
-              <div
+              <button
                 key={key}
-                className={`p-3 rounded-lg border ${
+                onClick={() => onTabChange(key as PipelineKey)}
+                className={`p-3 rounded-lg border text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${
                   result?.status === 'success'
-                    ? getColorClass(config.color, 'bg')
-                    : 'bg-gray-50'
+                    ? `${getColorClass(config.color, 'bg')} hover:ring-2 hover:ring-offset-1 hover:ring-${config.color}-300`
+                    : 'bg-gray-50 hover:bg-gray-100'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -585,7 +613,7 @@ function SummaryTab({ results }: { results: AllResults }) {
                     <span className="text-xs text-gray-500 ml-1">{metric.label}</span>
                   </div>
                 )}
-              </div>
+              </button>
             )
           })}
         </div>

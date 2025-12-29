@@ -3,6 +3,7 @@ import { analysisApi, videosApi } from '@/api/client'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Html, Text } from '@react-three/drei'
 import * as THREE from 'three'
+import { Maximize2, Minimize2, X } from 'lucide-react'
 
 interface VideoPoint {
   video_id: string
@@ -203,8 +204,10 @@ export default function SimilarityMap() {
   const [colorBy, setColorBy] = useState<'label' | 'cluster' | 'elo'>('label')
   const [showLabelsOnly, setShowLabelsOnly] = useState(false)
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d')
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const fullscreenContainerRef = useRef<HTMLDivElement>(null)
 
   // Zoom and pan state
   const [zoom, setZoom] = useState(1)
@@ -220,7 +223,7 @@ export default function SimilarityMap() {
     setLoading(true)
     try {
       const data = await analysisApi.getSimilarityMap()
-      
+
       // The backend should return MDS-projected 2D coordinates
       // If not available, we'll simulate with random positions
       if (data.points && data.points.length > 0) {
@@ -228,7 +231,7 @@ export default function SimilarityMap() {
       } else {
         // Fallback: get videos and create placeholder positions
         const videosData = await analysisApi.getAllVideoEmbeddings()
-        
+
         // Simple MDS simulation (in production, do this on backend)
         const simulatedPoints = videosData.map((video: any, idx: number) => {
           const angle = (idx / videosData.length) * 2 * Math.PI
@@ -246,24 +249,38 @@ export default function SimilarityMap() {
       }
     } catch (error) {
       console.error('Failed to load embeddings:', error)
-      
-      // Create sample data for visualization
-      const samplePoints: VideoPoint[] = []
-      for (let i = 0; i < 30; i++) {
-        const cluster = i % 3
-        const baseX = cluster === 0 ? 0.25 : cluster === 1 ? 0.5 : 0.75
-        const baseY = cluster === 0 ? 0.3 : cluster === 1 ? 0.7 : 0.4
-        
-        samplePoints.push({
-          video_id: `video_${i}`,
-          x: baseX + (Math.random() - 0.5) * 0.2,
-          y: baseY + (Math.random() - 0.5) * 0.2,
-          label: cluster === 0 ? 0 : cluster === 2 ? 1 : -1,
-          cluster,
-          elo_rating: 1400 + cluster * 100 + Math.random() * 50
-        })
+
+      // Fallback: Load actual videos from the video list API
+      try {
+        const videosResponse = await videosApi.list(0, 100)
+        const videos = videosResponse.videos || videosResponse || []
+
+        if (videos.length > 0) {
+          // Create points with real video IDs
+          const realPoints: VideoPoint[] = videos.map((video: any, idx: number) => {
+            const cluster = idx % 3
+            const baseX = cluster === 0 ? 0.25 : cluster === 1 ? 0.5 : 0.75
+            const baseY = cluster === 0 ? 0.3 : cluster === 1 ? 0.7 : 0.4
+
+            return {
+              video_id: video.id || video.video_id,
+              x: baseX + (Math.random() - 0.5) * 0.2,
+              y: baseY + (Math.random() - 0.5) * 0.2,
+              z: 0.25 + Math.random() * 0.5,  // Add z for 3D
+              label: video.label ?? -1,
+              cluster,
+              elo_rating: video.elo_rating || (1400 + cluster * 100 + Math.random() * 50)
+            }
+          })
+          setPoints(realPoints)
+        } else {
+          // Final fallback: empty state
+          setPoints([])
+        }
+      } catch (videoError) {
+        console.error('Failed to load videos:', videoError)
+        setPoints([])
       }
-      setPoints(samplePoints)
     } finally {
       setLoading(false)
     }
@@ -461,6 +478,30 @@ export default function SimilarityMap() {
     setPan({ x: 0, y: 0 })
   }
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev)
+  }, [])
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isFullscreen])
+
+  // Redraw canvas when fullscreen changes
+  useEffect(() => {
+    if (viewMode === '2d') {
+      // Small delay to let the container resize
+      const timer = setTimeout(() => drawCanvas(), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isFullscreen, viewMode, drawCanvas])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -600,10 +641,67 @@ export default function SimilarityMap() {
 
       {/* Canvas Container */}
       <div
-        ref={containerRef}
-        className="border rounded-lg overflow-hidden bg-gray-50 relative"
-        style={{ height: '500px' }}
+        ref={isFullscreen ? fullscreenContainerRef : containerRef}
+        className={`border rounded-lg overflow-hidden bg-gray-50 relative ${
+          isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : ''
+        }`}
+        style={{ height: isFullscreen ? '100vh' : '500px' }}
       >
+        {/* Fullscreen header bar */}
+        {isFullscreen && (
+          <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur border-b px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <h3 className="font-semibold">{viewMode === '2d' ? '2D' : '3D'} Similarity Map</h3>
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('2d')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    viewMode === '2d'
+                      ? 'bg-white shadow-sm text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  2D
+                </button>
+                <button
+                  onClick={() => setViewMode('3d')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    viewMode === '3d'
+                      ? 'bg-white shadow-sm text-primary'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  3D
+                </button>
+              </div>
+              <select
+                value={colorBy}
+                onChange={(e) => setColorBy(e.target.value as any)}
+                className="px-3 py-1.5 border rounded-lg text-sm"
+              >
+                <option value="label">Color: Label</option>
+                <option value="cluster">Color: Cluster</option>
+                <option value="elo">Color: Elo Rating</option>
+              </select>
+              {viewMode === '2d' && (
+                <button
+                  onClick={resetView}
+                  className="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-100"
+                >
+                  Reset View
+                </button>
+              )}
+            </div>
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              title="Exit Fullscreen (ESC)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
         {viewMode === '2d' ? (
           <>
             <canvas
@@ -615,8 +713,25 @@ export default function SimilarityMap() {
               onClick={handleClick}
               onWheel={handleWheel}
               className="cursor-crosshair"
-              style={{ width: '100%', height: '100%' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                marginTop: isFullscreen ? '56px' : 0
+              }}
             />
+
+            {/* Fullscreen toggle button */}
+            <button
+              onClick={toggleFullscreen}
+              className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg shadow-md transition-all"
+              title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-5 h-5" />
+              ) : (
+                <Maximize2 className="w-5 h-5" />
+              )}
+            </button>
 
             {/* Zoom indicator */}
             <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded text-sm">
@@ -625,14 +740,18 @@ export default function SimilarityMap() {
 
             {/* Instructions */}
             <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
-              Scroll to zoom • Drag to pan • Click point to select
+              Scroll to zoom • Drag to pan • Click point to select {isFullscreen && '• ESC to exit'}
             </div>
           </>
         ) : (
           <>
             <Canvas
               camera={{ position: [6, 4, 8], fov: 50 }}
-              style={{ background: 'linear-gradient(to bottom, #f0f9ff, #e0f2fe, #f0f9ff)' }}
+              style={{
+                background: 'linear-gradient(to bottom, #f0f9ff, #e0f2fe, #f0f9ff)',
+                marginTop: isFullscreen ? '56px' : 0,
+                height: isFullscreen ? 'calc(100% - 56px)' : '100%'
+              }}
             >
               <Suspense fallback={null}>
                 <Scene3D
@@ -648,13 +767,24 @@ export default function SimilarityMap() {
               </Suspense>
             </Canvas>
 
+            {/* Fullscreen toggle button */}
+            {!isFullscreen && (
+              <button
+                onClick={toggleFullscreen}
+                className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg shadow-md transition-all"
+                title="Enter Fullscreen"
+              >
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            )}
+
             {/* 3D Instructions */}
             <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
-              Drag to rotate • Scroll to zoom • Right-click to pan • Click point to select
+              Drag to rotate • Scroll to zoom • Right-click to pan • Click point to select {isFullscreen && '• ESC to exit'}
             </div>
 
             {/* 3D Legend */}
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-xs">
+            <div className={`absolute ${isFullscreen ? 'top-20' : 'top-4'} left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-xs`}>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-3 h-0.5 bg-red-500"></div>
                 <span>X axis</span>

@@ -70,13 +70,15 @@ export const videosApi = {
     return response.data
   },
   getStreamUrl: (videoId: string) => {
-    return `${API_BASE_URL}/api/videos/${videoId}/stream`
+    // Use relative URL to go through nginx proxy when running in container
+    // This ensures proper routing regardless of how the app is accessed
+    return `/api/videos/${videoId}/stream`
   },
   getAnnotatedUrl: (videoId: string) => {
-    return `${API_BASE_URL}/api/videos/${videoId}/annotated`
+    return `/api/videos/${videoId}/annotated`
   },
   getFrameUrl: (videoId: string, frameNum: number, annotated = false) => {
-    return `${API_BASE_URL}/api/videos/${videoId}/frame/${frameNum}?annotated=${annotated}`
+    return `/api/videos/${videoId}/frame/${frameNum}?annotated=${annotated}`
   },
   triggerAnnotation: async (videoId: string, options?: {
     include_yolo?: boolean
