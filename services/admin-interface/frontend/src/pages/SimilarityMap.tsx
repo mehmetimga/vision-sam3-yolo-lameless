@@ -1,10 +1,14 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { analysisApi, videosApi } from '@/api/client'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, Html, Text } from '@react-three/drei'
+import * as THREE from 'three'
 
 interface VideoPoint {
   video_id: string
   x: number
   y: number
+  z?: number  // Optional z coordinate for 3D
   label: number  // 0 = sound, 1 = lame, -1 = unknown
   cluster: number
   elo_rating?: number
@@ -16,16 +20,192 @@ interface HoveredPoint {
   screenY: number
 }
 
+// 3D Point component
+interface Point3DProps {
+  point: VideoPoint
+  color: string
+  isSelected: boolean
+  isHovered: boolean
+  onHover: (point: VideoPoint | null) => void
+  onClick: (point: VideoPoint) => void
+}
+
+function Point3D({ point, color, isSelected, isHovered, onHover, onClick }: Point3DProps) {
+  const meshRef = useRef<THREE.Mesh>(null)
+
+  useFrame(() => {
+    if (meshRef.current) {
+      // Gentle floating animation
+      meshRef.current.position.y = (point.y - 0.5) * 4 + Math.sin(Date.now() * 0.001 + point.x * 10) * 0.02
+    }
+  })
+
+  const scale = isSelected ? 1.5 : isHovered ? 1.2 : 1
+
+  return (
+    <mesh
+      ref={meshRef}
+      position={[(point.x - 0.5) * 8, (point.y - 0.5) * 4, ((point.z ?? point.x * point.y) - 0.25) * 6]}
+      scale={scale}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        onHover(point)
+      }}
+      onPointerOut={() => onHover(null)}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick(point)
+      }}
+    >
+      <sphereGeometry args={[0.12, 16, 16]} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={isHovered || isSelected ? 0.5 : 0.2}
+        metalness={0.3}
+        roughness={0.7}
+      />
+      {(isHovered || isSelected) && (
+        <mesh>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshBasicMaterial color={color} transparent opacity={0.3} wireframe />
+        </mesh>
+      )}
+    </mesh>
+  )
+}
+
+// Cluster visual (ellipsoid)
+function ClusterEllipsoid({ points, clusterId, color }: { points: VideoPoint[], clusterId: number, color: string }) {
+  if (points.length < 3) return null
+
+  const centroid = {
+    x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
+    y: points.reduce((sum, p) => sum + p.y, 0) / points.length,
+    z: points.reduce((sum, p) => sum + (p.z ?? p.x * p.y), 0) / points.length
+  }
+
+  return (
+    <mesh position={[(centroid.x - 0.5) * 8, (centroid.y - 0.5) * 4, (centroid.z - 0.25) * 6]}>
+      <sphereGeometry args={[1.2, 16, 16]} />
+      <meshBasicMaterial color={color} transparent opacity={0.08} />
+      <lineSegments>
+        <edgesGeometry args={[new THREE.SphereGeometry(1.2, 8, 8)]} />
+        <lineBasicMaterial color={color} opacity={0.3} transparent />
+      </lineSegments>
+    </mesh>
+  )
+}
+
+// 3D Scene component
+interface Scene3DProps {
+  points: VideoPoint[]
+  colorBy: 'label' | 'cluster' | 'elo'
+  showLabelsOnly: boolean
+  selectedPoint: VideoPoint | null
+  hoveredPoint3D: VideoPoint | null
+  onHover: (point: VideoPoint | null) => void
+  onClick: (point: VideoPoint) => void
+  getPointColor: (point: VideoPoint) => string
+}
+
+function Scene3D({ points, colorBy, showLabelsOnly, selectedPoint, hoveredPoint3D, onHover, onClick, getPointColor }: Scene3DProps) {
+  const displayPoints = showLabelsOnly ? points.filter(p => p.label !== -1) : points
+
+  // Group by cluster for cluster visualization
+  const clusters = new Map<number, VideoPoint[]>()
+  if (colorBy === 'cluster') {
+    displayPoints.forEach(p => {
+      if (!clusters.has(p.cluster)) clusters.set(p.cluster, [])
+      clusters.get(p.cluster)!.push(p)
+    })
+  }
+
+  const clusterColors = ['#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
+
+  return (
+    <>
+      {/* Ambient and directional lights */}
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[10, 10, 5]} intensity={0.8} />
+      <directionalLight position={[-10, -10, -5]} intensity={0.4} />
+      <pointLight position={[0, 5, 0]} intensity={0.5} color="#ffffff" />
+
+      {/* Grid helper */}
+      <gridHelper args={[10, 20, '#e5e7eb', '#e5e7eb']} position={[0, -2.5, 0]} />
+
+      {/* Axis helper */}
+      <axesHelper args={[5]} />
+
+      {/* Cluster ellipsoids */}
+      {colorBy === 'cluster' && Array.from(clusters.entries()).map(([clusterId, clusterPoints]) => (
+        <ClusterEllipsoid
+          key={clusterId}
+          points={clusterPoints}
+          clusterId={clusterId}
+          color={clusterColors[clusterId % clusterColors.length]}
+        />
+      ))}
+
+      {/* Points */}
+      {displayPoints.map(point => (
+        <Point3D
+          key={point.video_id}
+          point={point}
+          color={getPointColor(point)}
+          isSelected={selectedPoint?.video_id === point.video_id}
+          isHovered={hoveredPoint3D?.video_id === point.video_id}
+          onHover={onHover}
+          onClick={onClick}
+        />
+      ))}
+
+      {/* Hover tooltip in 3D space */}
+      {hoveredPoint3D && (
+        <Html
+          position={[
+            (hoveredPoint3D.x - 0.5) * 8 + 0.3,
+            (hoveredPoint3D.y - 0.5) * 4 + 0.3,
+            ((hoveredPoint3D.z ?? hoveredPoint3D.x * hoveredPoint3D.y) - 0.25) * 6
+          ]}
+          distanceFactor={8}
+        >
+          <div className="bg-white/95 backdrop-blur rounded-lg shadow-xl border p-2 pointer-events-none text-xs min-w-32">
+            <div className="font-mono font-medium">{hoveredPoint3D.video_id.slice(0, 16)}...</div>
+            <div className="text-muted-foreground mt-1">
+              {hoveredPoint3D.label === 0 ? 'Healthy' : hoveredPoint3D.label === 1 ? 'Lame' : 'Unknown'}
+            </div>
+            {hoveredPoint3D.elo_rating && (
+              <div className="text-muted-foreground">Elo: {hoveredPoint3D.elo_rating}</div>
+            )}
+          </div>
+        </Html>
+      )}
+
+      {/* Camera controls */}
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={3}
+        maxDistance={20}
+        maxPolarAngle={Math.PI / 1.5}
+      />
+    </>
+  )
+}
+
 export default function SimilarityMap() {
   const [points, setPoints] = useState<VideoPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [hoveredPoint, setHoveredPoint] = useState<HoveredPoint | null>(null)
+  const [hoveredPoint3D, setHoveredPoint3D] = useState<VideoPoint | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<VideoPoint | null>(null)
   const [colorBy, setColorBy] = useState<'label' | 'cluster' | 'elo'>('label')
   const [showLabelsOnly, setShowLabelsOnly] = useState(false)
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  
+
   // Zoom and pan state
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
@@ -297,12 +477,36 @@ export default function SimilarityMap() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold">2D Similarity Map</h2>
+          <h2 className="text-3xl font-bold">{viewMode === '2d' ? '2D' : '3D'} Similarity Map</h2>
           <p className="text-muted-foreground mt-1">
             MDS projection of DINOv3 embeddings for clustering visualization
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* 2D/3D Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                viewMode === '2d'
+                  ? 'bg-white shadow-sm text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              2D
+            </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                viewMode === '3d'
+                  ? 'bg-white shadow-sm text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              3D
+            </button>
+          </div>
+
           {/* Color by selector */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Color by:</span>
@@ -316,7 +520,7 @@ export default function SimilarityMap() {
               <option value="elo">Elo Rating</option>
             </select>
           </div>
-          
+
           {/* Filter toggle */}
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -327,14 +531,16 @@ export default function SimilarityMap() {
             />
             <span className="text-sm">Labeled only</span>
           </label>
-          
-          {/* Reset view */}
-          <button
-            onClick={resetView}
-            className="px-4 py-2 border rounded-lg hover:bg-accent"
-          >
-            Reset View
-          </button>
+
+          {/* Reset view - only for 2D */}
+          {viewMode === '2d' && (
+            <button
+              onClick={resetView}
+              className="px-4 py-2 border rounded-lg hover:bg-accent"
+            >
+              Reset View
+            </button>
+          )}
         </div>
       </div>
 
@@ -393,36 +599,81 @@ export default function SimilarityMap() {
       </div>
 
       {/* Canvas Container */}
-      <div 
+      <div
         ref={containerRef}
         className="border rounded-lg overflow-hidden bg-gray-50 relative"
         style={{ height: '500px' }}
       >
-        <canvas
-          ref={canvasRef}
-          onMouseMove={handleMouseMove}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onClick={handleClick}
-          onWheel={handleWheel}
-          className="cursor-crosshair"
-          style={{ width: '100%', height: '100%' }}
-        />
-        
-        {/* Zoom indicator */}
-        <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded text-sm">
-          Zoom: {(zoom * 100).toFixed(0)}%
-        </div>
-        
-        {/* Instructions */}
-        <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
-          Scroll to zoom • Drag to pan • Click point to select
-        </div>
+        {viewMode === '2d' ? (
+          <>
+            <canvas
+              ref={canvasRef}
+              onMouseMove={handleMouseMove}
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              onClick={handleClick}
+              onWheel={handleWheel}
+              className="cursor-crosshair"
+              style={{ width: '100%', height: '100%' }}
+            />
+
+            {/* Zoom indicator */}
+            <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded text-sm">
+              Zoom: {(zoom * 100).toFixed(0)}%
+            </div>
+
+            {/* Instructions */}
+            <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
+              Scroll to zoom • Drag to pan • Click point to select
+            </div>
+          </>
+        ) : (
+          <>
+            <Canvas
+              camera={{ position: [6, 4, 8], fov: 50 }}
+              style={{ background: 'linear-gradient(to bottom, #f0f9ff, #e0f2fe, #f0f9ff)' }}
+            >
+              <Suspense fallback={null}>
+                <Scene3D
+                  points={points}
+                  colorBy={colorBy}
+                  showLabelsOnly={showLabelsOnly}
+                  selectedPoint={selectedPoint}
+                  hoveredPoint3D={hoveredPoint3D}
+                  onHover={setHoveredPoint3D}
+                  onClick={setSelectedPoint}
+                  getPointColor={getPointColor}
+                />
+              </Suspense>
+            </Canvas>
+
+            {/* 3D Instructions */}
+            <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
+              Drag to rotate • Scroll to zoom • Right-click to pan • Click point to select
+            </div>
+
+            {/* 3D Legend */}
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-xs">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-3 h-0.5 bg-red-500"></div>
+                <span>X axis</span>
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-3 h-0.5 bg-green-500"></div>
+                <span>Y axis</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-blue-500"></div>
+                <span>Z axis</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Hover tooltip */}
-      {hoveredPoint && (
+      {/* Hover tooltip - only for 2D mode */}
+      {viewMode === '2d' && hoveredPoint && (
         <div
           className="fixed z-50 bg-white rounded-lg shadow-xl border p-3 pointer-events-none"
           style={{
@@ -432,7 +683,7 @@ export default function SimilarityMap() {
         >
           <div className="text-sm font-mono">{hoveredPoint.point.video_id.slice(0, 16)}...</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Label: {hoveredPoint.point.label === 0 ? 'Healthy' : 
+            Label: {hoveredPoint.point.label === 0 ? 'Healthy' :
                     hoveredPoint.point.label === 1 ? 'Lame' : 'Unknown'}
           </div>
           {hoveredPoint.point.elo_rating && (
