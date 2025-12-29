@@ -20,7 +20,8 @@ import {
   Play,
   Loader2,
   BarChart3,
-  Users
+  Users,
+  Microscope
 } from 'lucide-react'
 
 const API_BASE = '/api'
@@ -670,6 +671,13 @@ export default function VideoResults() {
           >
             <Play className="h-4 w-4" />
             View Video
+          </button>
+          <button
+            onClick={() => navigate(`/pipeline-analysis/${videoId}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+          >
+            <Microscope className="h-4 w-4" />
+            Deep Analysis
           </button>
           <button
             onClick={loadAllResults}

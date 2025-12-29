@@ -357,7 +357,7 @@ export const mlConfigApi = {
   },
 }
 
-// Analysis pipeline endpoints (for VideoResults)
+// Analysis pipeline endpoints (for VideoResults and PipelineAnalysis)
 export const pipelineResultsApi = {
   getAll: async (videoId: string) => {
     const response = await apiClient.get(`/api/analysis/${videoId}/all`)
@@ -365,6 +365,21 @@ export const pipelineResultsApi = {
   },
   getPipeline: async (videoId: string, pipeline: string) => {
     const response = await apiClient.get(`/api/analysis/${videoId}/${pipeline}`)
+    return response.data
+  },
+  getGraphTransformer: async (videoId: string) => {
+    const response = await apiClient.get(`/api/analysis/${videoId}/graph_transformer`)
+    return response.data
+  },
+  getFrameData: async (videoId: string, frameNum: number) => {
+    const response = await apiClient.get(`/api/analysis/${videoId}/frames/${frameNum}`)
+    return response.data
+  },
+  exportResults: (videoId: string, format: 'json' | 'csv' = 'json') => {
+    return `${API_BASE_URL}/api/analysis/${videoId}/export?format=${format}`
+  },
+  getBatch: async (videoIds: string[], pipelines?: string[]) => {
+    const response = await apiClient.post('/api/analysis/batch', { video_ids: videoIds, pipelines })
     return response.data
   },
 }

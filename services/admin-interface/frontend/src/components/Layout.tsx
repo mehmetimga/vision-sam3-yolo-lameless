@@ -26,7 +26,8 @@ import {
   Cpu,
   Users,
   BookOpen,
-  Menu
+  Menu,
+  Microscope
 } from 'lucide-react'
 
 interface LayoutProps {

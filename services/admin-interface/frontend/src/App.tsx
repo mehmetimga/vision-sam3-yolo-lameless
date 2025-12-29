@@ -15,6 +15,7 @@ import Login from './pages/Login'
 import PipelineMonitor from './pages/PipelineMonitor'
 import SystemHealth from './pages/SystemHealth'
 import VideoResults from './pages/VideoResults'
+import PipelineAnalysis from './pages/PipelineAnalysis'
 import MLConfiguration from './pages/MLConfiguration'
 import UserManagement from './pages/UserManagement'
 import TutorialManagement from './pages/TutorialManagement'
@@ -49,6 +50,14 @@ function App() {
                   <Route path="/video/:videoId" element={<VideoAnalysis />} />
                   <Route path="/analysis/:videoId" element={<VideoAnalysis />} />
                   <Route path="/results/:videoId" element={<VideoResults />} />
+                  <Route
+                    path="/pipeline-analysis/:videoId"
+                    element={
+                      <ResearcherRoute>
+                        <PipelineAnalysis />
+                      </ResearcherRoute>
+                    }
+                  />
 
                   {/* Human-in-the-loop - all authenticated users */}
                   <Route path="/pairwise" element={<PairwiseReview />} />

@@ -217,21 +217,23 @@ class GaitTransformer(nn.Module):
     def get_attention_weights(self, x: torch.Tensor) -> List[torch.Tensor]:
         """
         Get attention weights from all layers for interpretability.
-        
+
         Returns list of attention weight tensors, one per layer.
         """
         x = self.input_projection(x)
         x = self.pos_encoder(x)
-        
+
         attention_weights = []
-        
+
         for layer in self.encoder_layers:
             x_norm = layer.norm1(x)
-            _, attn_weights = layer.self_attn(x_norm, x_norm, x_norm, 
-                                               need_weights=True, average_attn_heads=False)
+            # Note: average_attn_heads parameter requires PyTorch 2.0+
+            # Using need_weights=True returns averaged attention weights
+            _, attn_weights = layer.self_attn(x_norm, x_norm, x_norm,
+                                               need_weights=True)
             attention_weights.append(attn_weights.detach())
             x = layer(x)
-        
+
         return attention_weights
 
 
@@ -431,11 +433,13 @@ class TransformerPipeline:
             # Get attention weights for interpretability
             self.model.eval()
             attention_weights = self.model.get_attention_weights(x)
-            
+
             # Compute attention-based saliency (average attention to each timestep)
-            avg_attention = attention_weights[-1].mean(dim=(0, 1)).cpu().numpy()
-            temporal_saliency = avg_attention.mean(axis=0).tolist()
-            
+            # attention_weights[-1] shape: (batch, seq_len, seq_len) after averaging heads
+            avg_attention = attention_weights[-1].squeeze(0).cpu().numpy()  # (seq_len, seq_len)
+            # Sum attention received by each timestep (column-wise sum)
+            temporal_saliency = avg_attention.sum(axis=0).tolist()
+
             # Save results
             results = {
                 "video_id": video_id,
@@ -447,7 +451,7 @@ class TransformerPipeline:
                 "input_frames": features.shape[0],
                 "input_features": features.shape[1],
                 "masked_frames": int(mask.sum()),
-                "temporal_saliency": temporal_saliency[:20],  # First 20 for brevity
+                "temporal_saliency": temporal_saliency[:20] if len(temporal_saliency) > 20 else temporal_saliency,  # First 20 for brevity
                 "model_info": {
                     "d_model": self.model.d_model,
                     "num_layers": len(self.model.encoder_layers),
