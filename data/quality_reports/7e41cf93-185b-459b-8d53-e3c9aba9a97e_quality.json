@@ -1,0 +1,45 @@
+{
+  "video_id": "7e41cf93-185b-459b-8d53-e3c9aba9a97e",
+  "source_video": {
+    "fps": 25.0,
+    "width": 500,
+    "height": 500,
+    "total_frames": 127,
+    "duration": 5.08
+  },
+  "canonical_clip": {
+    "target_fps": 25,
+    "target_resolution": [
+      1280,
+      720
+    ],
+    "target_duration": 5.0
+  },
+  "walking_passes_detected": 1,
+  "passes": [
+    {
+      "start_frame": 0,
+      "end_frame": 126,
+      "direction": "left_to_right",
+      "duration": 5.04
+    }
+  ],
+  "selected_window": {
+    "start_frame": 0,
+    "end_frame": 125,
+    "start_time": 0.0,
+    "end_time": 5.0,
+    "needs_flip": false,
+    "metrics": {
+      "framing_score": 1.0,
+      "steadiness_score": 0.0,
+      "straightness_score": 0.2809680104255676,
+      "visual_quality_score": 0.84975086988172,
+      "occlusion_score": 0.8013299987316131,
+      "overall_score": 0.5997408341544287
+    }
+  },
+  "backup_window": null,
+  "status": "success",
+  "rejection_reason": null
+}

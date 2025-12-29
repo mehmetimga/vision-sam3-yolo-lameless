@@ -31,12 +31,14 @@ class FusionService:
     """
     
     # Pipeline weights for weighted average fusion
+    # Updated to include Graph Transformer (primary graph model)
     PIPELINE_WEIGHTS = {
-        "ml": 0.25,
-        "tcn": 0.15,
-        "transformer": 0.15,
-        "gnn": 0.15,
-        "human": 0.30  # High weight for human consensus
+        "ml": 0.15,
+        "tcn": 0.12,
+        "transformer": 0.12,
+        "gnn": 0.08,                 # Reduced - GraphGPS as secondary
+        "graph_transformer": 0.18,   # New - Primary graph model (Graphormer)
+        "human": 0.35                # High weight for human consensus
     }
     
     # Confidence thresholds for gating
@@ -129,7 +131,19 @@ class FusionService:
                     "uncertainty": gnn_data.get("uncertainty", 0.1),
                     "neighbor_influence": gnn_data.get("neighbor_influence", [])
                 }
-        
+
+        # Graph Transformer (Graphormer) pipeline predictions
+        gt_file = Path(f"/app/data/results/graph_transformer/{video_id}_graph_transformer.json")
+        if gt_file.exists():
+            with open(gt_file) as f:
+                gt_data = json.load(f)
+                predictions["graph_transformer"] = {
+                    "probability": gt_data.get("graph_prediction", 0.5),
+                    "uncertainty": gt_data.get("uncertainty", 0.1),
+                    "node_prediction": gt_data.get("node_prediction", 0.5),
+                    "attention_info": gt_data.get("attention_info", {})
+                }
+
         # Human consensus (from rater reliability service)
         human_file = Path(f"/app/data/rater_reliability/consensus/{video_id}.json")
         if human_file.exists():
@@ -173,7 +187,7 @@ class FusionService:
         
         # Collect automated predictions
         auto_preds = []
-        for key in ["ml", "tcn", "transformer", "gnn"]:
+        for key in ["ml", "tcn", "transformer", "gnn", "graph_transformer"]:
             if key in predictions:
                 auto_preds.append(predictions[key].get("probability", 0.5))
         
@@ -214,10 +228,10 @@ class FusionService:
         pipeline_probs = {}
         pipeline_uncertainties = {}
         
-        for key in ["ml", "tcn", "transformer", "gnn", "human"]:
+        for key in ["ml", "tcn", "transformer", "gnn", "graph_transformer", "human"]:
             if key in predictions:
                 pipeline_probs[key] = predictions[key].get("probability", 0.5)
-                pipeline_uncertainties[key] = predictions[key].get("uncertainty", 
+                pipeline_uncertainties[key] = predictions[key].get("uncertainty",
                     1.0 - predictions[key].get("confidence", 0.5))
         
         # Determine fusion probability based on decision mode
@@ -228,7 +242,7 @@ class FusionService:
         elif decision_mode == "automated":
             # Use stacking model if available
             if self.stacking_model:
-                features = [pipeline_probs.get(k, 0.5) for k in ["ml", "tcn", "transformer", "gnn"]]
+                features = [pipeline_probs.get(k, 0.5) for k in ["ml", "tcn", "transformer", "gnn", "graph_transformer"]]
                 try:
                     fusion_prob = float(self.stacking_model.predict_proba([features])[0, 1])
                 except:
@@ -237,7 +251,7 @@ class FusionService:
                 # Weighted average of automated pipelines
                 weighted_sum = 0.0
                 total_weight = 0.0
-                for key in ["ml", "tcn", "transformer", "gnn"]:
+                for key in ["ml", "tcn", "transformer", "gnn", "graph_transformer"]:
                     if key in pipeline_probs:
                         weight = self.PIPELINE_WEIGHTS.get(key, 0.1)
                         # Reduce weight for high uncertainty
@@ -303,7 +317,7 @@ class FusionService:
                     "prediction": int(pipeline_probs.get(key, 0.5) > 0.5),
                     "weight": self.PIPELINE_WEIGHTS.get(key, 0.1)
                 }
-                for key in ["ml", "tcn", "transformer", "gnn", "human"]
+                for key in ["ml", "tcn", "transformer", "gnn", "graph_transformer", "human"]
                 if key in pipeline_probs
             },
             "pipelines_used": list(pipeline_probs.keys()),

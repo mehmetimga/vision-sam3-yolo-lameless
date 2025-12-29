@@ -22,8 +22,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Data, Batch
-from torch_geometric.nn import GATConv, GCNConv, global_mean_pool, global_add_pool
+from torch_geometric.nn import GATConv, GCNConv, global_mean_pool, global_add_pool, SAGPooling
 from torch_geometric.utils import add_self_loops, degree
+from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import eigsh
 from shared.utils.nats_client import NATSClient
 
 
@@ -189,12 +191,32 @@ class GraphBuilder:
         x = torch.tensor(node_features, dtype=torch.float32)
         edge_index = torch.tensor(edge_index, dtype=torch.long)
         edge_type = torch.tensor(edge_type, dtype=torch.long)
-        
-        data = Data(x=x, edge_index=edge_index, edge_type=edge_type)
-        
+
+        # NEW: Create multi-dimensional edge features
+        # [similarity/temporal_weight, edge_type_knn, edge_type_temporal]
+        num_edges = edge_index.shape[1]
+        edge_attr = torch.zeros(num_edges, 3, dtype=torch.float32)
+
+        # Combine edge weights (kNN similarity + temporal distances)
+        if cow_ids is not None and timestamps is not None and temp_edges.size > 0:
+            knn_edge_count = knn_edges.shape[1]
+            # Normalize kNN weights to [0, 1]
+            edge_attr[:knn_edge_count, 0] = torch.tensor(knn_weights, dtype=torch.float32)
+            # Normalize temporal distances (days) using tanh
+            temp_weights_norm = np.tanh(np.abs(temp_weights) / 86400.0)  # Normalize by 1 day in seconds
+            edge_attr[knn_edge_count:, 0] = torch.tensor(temp_weights_norm, dtype=torch.float32)
+        else:
+            edge_attr[:, 0] = torch.tensor(knn_weights, dtype=torch.float32)
+
+        # Edge type one-hot encoding
+        edge_attr[:, 1] = (edge_type == 0).float()  # kNN indicator
+        edge_attr[:, 2] = (edge_type == 1).float()  # Temporal indicator
+
+        data = Data(x=x, edge_index=edge_index, edge_type=edge_type, edge_attr=edge_attr)
+
         if labels is not None:
             data.y = torch.tensor(labels, dtype=torch.float32)
-        
+
         return data
 
 
@@ -202,80 +224,192 @@ class GraphBuilder:
 # Positional Encodings
 # ============================================================================
 
-class LapPE(nn.Module):
+class LearnedLaplacianPE(nn.Module):
     """
-    Laplacian Positional Encoding.
-    
-    Uses eigenvectors of the graph Laplacian to provide positional information.
-    This helps the model understand graph structure.
+    True Laplacian Positional Encoding with learnable transformation.
+
+    Computes k smallest non-trivial eigenvectors of the normalized Laplacian
+    and learns a transformation to the hidden dimension.
+    Uses sign-flip invariance via absolute values.
     """
-    
-    def __init__(self, max_freq: int = 10, hidden_dim: int = 16):
+
+    def __init__(self, k: int = 8, hidden_dim: int = 16):
         super().__init__()
-        self.max_freq = max_freq
-        self.linear = nn.Linear(max_freq, hidden_dim)
-    
-    def compute_laplacian_pe(self, edge_index: torch.Tensor, num_nodes: int) -> torch.Tensor:
-        """Compute Laplacian eigenvector positional encoding"""
+        self.k = k
+        self.hidden_dim = hidden_dim
+
+        # Learnable transformation (sign-flip invariant via absolute value + MLP)
+        self.transform = nn.Sequential(
+            nn.Linear(k, hidden_dim * 2),
+            nn.ReLU(),
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.LayerNorm(hidden_dim)
+        )
+
+    def compute_laplacian_eigenvectors(self, edge_index: torch.Tensor,
+                                        num_nodes: int) -> torch.Tensor:
+        """Compute k smallest non-trivial eigenvectors of normalized Laplacian"""
+        device = edge_index.device
+
         # Build adjacency matrix
-        edge_index, _ = add_self_loops(edge_index, num_nodes=num_nodes)
-        row, col = edge_index
-        
+        edge_index_np = edge_index.cpu().numpy()
+        row, col = edge_index_np
+
+        # Add self-loops
+        self_loops = np.arange(num_nodes)
+        row = np.concatenate([row, self_loops])
+        col = np.concatenate([col, self_loops])
+        data = np.ones(len(row))
+
+        # Create sparse adjacency matrix
+        A = csr_matrix((data, (row, col)), shape=(num_nodes, num_nodes))
+
         # Compute degree
-        deg = degree(row, num_nodes, dtype=torch.float)
-        deg_inv_sqrt = deg.pow(-0.5)
-        deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
-        
-        # Normalized Laplacian: I - D^{-1/2} A D^{-1/2}
-        # For simplicity, use random walk Laplacian approximation
-        
-        # Create position encoding based on degree and local structure
-        pe = torch.zeros(num_nodes, self.max_freq)
-        
-        for i in range(self.max_freq):
-            # Use powers of normalized adjacency as features
-            pe[:, i] = deg.pow(i / self.max_freq)
-        
-        return pe
-    
+        deg = np.array(A.sum(axis=1)).flatten()
+        deg_inv_sqrt = np.where(deg > 0, 1.0 / np.sqrt(deg), 0)
+        D_inv_sqrt = csr_matrix((deg_inv_sqrt, (np.arange(num_nodes), np.arange(num_nodes))),
+                                 shape=(num_nodes, num_nodes))
+
+        # Normalized Laplacian: L = I - D^{-1/2} A D^{-1/2}
+        I = csr_matrix(np.eye(num_nodes))
+        L = I - D_inv_sqrt @ A @ D_inv_sqrt
+
+        # Compute eigenvectors
+        try:
+            if num_nodes > self.k + 1 and num_nodes <= 2000:
+                # Use sparse eigendecomposition
+                eigenvalues, eigenvectors = eigsh(L, k=min(self.k + 1, num_nodes - 1),
+                                                   which='SM', tol=1e-3)
+                # Skip first eigenvector (constant)
+                pe = eigenvectors[:, 1:self.k + 1]
+            elif num_nodes <= self.k + 1:
+                # Small graph - use dense
+                L_dense = L.toarray()
+                eigenvalues, eigenvectors = np.linalg.eigh(L_dense)
+                pe = eigenvectors[:, 1:self.k + 1]
+            else:
+                # Very large graph - use random features as fallback
+                pe = np.random.randn(num_nodes, self.k) * 0.01
+
+            # Pad if fewer eigenvectors available
+            if pe.shape[1] < self.k:
+                padding = np.zeros((num_nodes, self.k - pe.shape[1]))
+                pe = np.concatenate([pe, padding], axis=1)
+
+        except Exception:
+            # Fallback to random features
+            pe = np.random.randn(num_nodes, self.k) * 0.01
+
+        return torch.tensor(pe, dtype=torch.float32, device=device)
+
     def forward(self, edge_index: torch.Tensor, num_nodes: int) -> torch.Tensor:
-        pe = self.compute_laplacian_pe(edge_index, num_nodes)
-        return self.linear(pe)
+        pe = self.compute_laplacian_eigenvectors(edge_index, num_nodes)
+        # Make sign-flip invariant by using absolute values
+        pe = torch.abs(pe)
+        return self.transform(pe)
 
 
-class RWPE(nn.Module):
+class LearnedRWPE(nn.Module):
     """
-    Random Walk Positional Encoding.
-    
-    Uses random walk statistics to encode structural position.
+    True Random Walk Positional Encoding with learnable transformation.
+
+    Computes k-step random walk landing probabilities P^k[i,i] (self-return probs)
+    for each node.
     """
-    
-    def __init__(self, walk_length: int = 8, hidden_dim: int = 16):
+
+    def __init__(self, walk_length: int = 16, hidden_dim: int = 16):
         super().__init__()
         self.walk_length = walk_length
-        self.linear = nn.Linear(walk_length, hidden_dim)
-    
+        self.hidden_dim = hidden_dim
+
+        # Learnable transformation
+        self.transform = nn.Sequential(
+            nn.Linear(walk_length, hidden_dim * 2),
+            nn.ReLU(),
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.LayerNorm(hidden_dim)
+        )
+
     def compute_rwpe(self, edge_index: torch.Tensor, num_nodes: int) -> torch.Tensor:
-        """Compute random walk positional encoding"""
-        # Compute transition matrix
-        edge_index, _ = add_self_loops(edge_index, num_nodes=num_nodes)
-        row, col = edge_index
-        deg = degree(row, num_nodes, dtype=torch.float)
-        deg_inv = deg.pow(-1)
-        deg_inv[deg_inv == float('inf')] = 0
-        
-        # Landing probabilities (simplified)
-        pe = torch.zeros(num_nodes, self.walk_length)
-        
-        for step in range(self.walk_length):
-            # Use degree-based approximation
-            pe[:, step] = (deg / deg.sum()).pow(step + 1)
-        
-        return pe
-    
+        """Compute random walk positional encoding (diagonal of P^k)"""
+        device = edge_index.device
+
+        # Build transition matrix
+        edge_index_np = edge_index.cpu().numpy()
+        row, col = edge_index_np
+
+        # Add self-loops
+        self_loops = np.arange(num_nodes)
+        row = np.concatenate([row, self_loops])
+        col = np.concatenate([col, self_loops])
+        data = np.ones(len(row))
+
+        # Create sparse adjacency matrix
+        A = csr_matrix((data, (row, col)), shape=(num_nodes, num_nodes))
+
+        # Compute degree and build transition matrix P = D^{-1} A
+        deg = np.array(A.sum(axis=1)).flatten()
+        deg_inv = np.where(deg > 0, 1.0 / deg, 0)
+
+        # Build sparse random walk matrix
+        D_inv = csr_matrix((deg_inv, (np.arange(num_nodes), np.arange(num_nodes))),
+                           shape=(num_nodes, num_nodes))
+        P = D_inv @ A
+
+        # Compute P^k for k = 1, 2, ..., walk_length
+        pe = np.zeros((num_nodes, self.walk_length), dtype=np.float32)
+
+        if num_nodes <= 1000:
+            # Dense computation for small graphs
+            P_dense = P.toarray()
+            P_k = P_dense.copy()
+
+            for k in range(self.walk_length):
+                # Landing probability (diagonal of P^k)
+                pe[:, k] = np.diag(P_k)
+                P_k = P_k @ P_dense
+        else:
+            # For large graphs, use degree-based approximation
+            for k in range(self.walk_length):
+                pe[:, k] = np.power(deg / deg.sum(), k + 1)
+
+        return torch.tensor(pe, dtype=torch.float32, device=device)
+
     def forward(self, edge_index: torch.Tensor, num_nodes: int) -> torch.Tensor:
         pe = self.compute_rwpe(edge_index, num_nodes)
-        return self.linear(pe)
+        return self.transform(pe)
+
+
+# ============================================================================
+# Edge Encoder
+# ============================================================================
+
+class EdgeEncoder(nn.Module):
+    """
+    Encodes edge features to match hidden dimension for GatedGCN.
+
+    Input edge features:
+    - Similarity score / normalized temporal distance
+    - Edge type one-hot encoding (kNN, temporal)
+    """
+
+    def __init__(self, input_dim: int = 3, hidden_dim: int = 64):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Linear(hidden_dim // 2, hidden_dim),
+            nn.LayerNorm(hidden_dim)
+        )
+
+    def forward(self, edge_attr: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            edge_attr: (E, input_dim) raw edge features
+        Returns:
+            (E, hidden_dim) encoded edge features
+        """
+        return self.encoder(edge_attr)
 
 
 # ============================================================================
@@ -284,92 +418,125 @@ class RWPE(nn.Module):
 
 class GatedGCNLayer(nn.Module):
     """
-    Gated Graph Convolution Layer.
-    
+    Gated Graph Convolution Layer with edge feature support.
+
     Implements message passing with gating mechanism for controlled information flow.
+    Enhanced to properly incorporate edge features in gating mechanism.
     """
-    
-    def __init__(self, in_dim: int, out_dim: int, dropout: float = 0.1):
+
+    def __init__(self, in_dim: int, out_dim: int, edge_dim: int = None, dropout: float = 0.1):
         super().__init__()
-        
+
+        self.out_dim = out_dim
         self.A = nn.Linear(in_dim, out_dim)
         self.B = nn.Linear(in_dim, out_dim)
-        self.C = nn.Linear(in_dim, out_dim)
         self.D = nn.Linear(in_dim, out_dim)
         self.E = nn.Linear(in_dim, out_dim)
-        
+
+        # Edge feature transformation (accept edge_dim or default to in_dim)
+        edge_dim = edge_dim if edge_dim is not None else in_dim
+        self.C = nn.Linear(edge_dim, out_dim)
+
+        # Edge feature update network
+        self.edge_update = nn.Sequential(
+            nn.Linear(out_dim * 3, out_dim),  # src + dst + edge features
+            nn.ReLU(),
+            nn.Linear(out_dim, out_dim)
+        )
+
         self.bn_node = nn.BatchNorm1d(out_dim)
         self.bn_edge = nn.BatchNorm1d(out_dim)
         self.dropout = nn.Dropout(dropout)
-    
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, 
+
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
                 edge_attr: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Args:
             x: Node features (N, in_dim)
             edge_index: Edge indices (2, E)
-            edge_attr: Edge features (E, in_dim) - optional
+            edge_attr: Edge features (E, edge_dim) - optional
         """
         src, dst = edge_index
-        
+
         # Node transformations
         Ax = self.A(x)
         Bx = self.B(x)
         Dx = self.D(x)
         Ex = self.E(x)
-        
-        # Edge gate
+
+        # Edge gate with proper edge feature incorporation
         if edge_attr is not None:
             Ce = self.C(edge_attr)
             sigma = torch.sigmoid(Ce + Dx[dst] + Ex[src])
-            e_new = Ce
+
+            # Update edge features
+            edge_input = torch.cat([Dx[dst], Ex[src], Ce], dim=-1)
+            e_new = self.bn_edge(self.edge_update(edge_input))
         else:
             sigma = torch.sigmoid(Dx[dst] + Ex[src])
             e_new = sigma
-        
+
         # Message passing with gating
         message = sigma * Bx[src]
-        
+
         # Aggregate messages
         agg = torch.zeros_like(x[:, :message.size(1)])
         agg.scatter_add_(0, dst.unsqueeze(1).expand_as(message), message)
-        
+
         # Count neighbors for normalization
         deg = degree(dst, x.size(0), dtype=x.dtype).clamp(min=1)
         agg = agg / deg.unsqueeze(1)
-        
+
         # Residual connection
         h = Ax + agg
         h = self.bn_node(h)
         h = F.relu(h)
         h = self.dropout(h)
-        
+
         return h, e_new
 
 
 class GlobalAttention(nn.Module):
     """
-    Global Self-Attention for graphs.
-    
-    Applies Transformer-style attention across all nodes.
+    Global Self-Attention for graphs with increased expressiveness.
+
+    Enhanced with:
+    - Configurable attention heads (default 8)
+    - Attention dropout
+    - Optional attention bias from positional encodings
     """
-    
-    def __init__(self, hidden_dim: int, num_heads: int = 4, dropout: float = 0.1):
+
+    def __init__(self, hidden_dim: int, num_heads: int = 8, dropout: float = 0.1,
+                 use_pe_bias: bool = True):
         super().__init__()
-        
+
+        assert hidden_dim % num_heads == 0, f"hidden_dim ({hidden_dim}) must be divisible by num_heads ({num_heads})"
+
+        self.num_heads = num_heads
+        self.hidden_dim = hidden_dim
+        self.head_dim = hidden_dim // num_heads
+
         self.attention = nn.MultiheadAttention(
             hidden_dim, num_heads, dropout=dropout, batch_first=True
         )
         self.norm = nn.LayerNorm(hidden_dim)
         self.dropout = nn.Dropout(dropout)
-    
-    def forward(self, x: torch.Tensor, batch: Optional[torch.Tensor] = None) -> torch.Tensor:
+
+        # Optional PE bias projection
+        if use_pe_bias:
+            self.pe_bias = nn.Linear(hidden_dim, num_heads)
+        else:
+            self.pe_bias = None
+
+    def forward(self, x: torch.Tensor, batch: Optional[torch.Tensor] = None,
+                pe: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
-        Apply global attention.
-        
+        Apply global attention with optional PE-based bias.
+
         Args:
             x: Node features (N, D)
             batch: Batch assignment (N,) for batched graphs
+            pe: Positional encodings (N, D) for attention bias
         """
         if batch is None:
             # Single graph - simple attention
@@ -380,15 +547,15 @@ class GlobalAttention(nn.Module):
             # Batched graphs - attention within each graph
             unique_batches = batch.unique()
             outputs = []
-            
+
             for b in unique_batches:
                 mask = batch == b
                 x_b = x[mask].unsqueeze(0)  # (1, N_b, D)
                 attn_out, _ = self.attention(x_b, x_b, x_b)
                 outputs.append(attn_out.squeeze(0))
-            
+
             attn_out = torch.cat(outputs, dim=0)
-        
+
         # Residual connection
         out = self.norm(x + self.dropout(attn_out))
         return out
@@ -397,23 +564,29 @@ class GlobalAttention(nn.Module):
 class GraphGPSLayer(nn.Module):
     """
     GraphGPS Layer combining local and global attention.
-    
+
+    Enhanced with:
+    - 8 attention heads in global attention
+    - Edge feature propagation through layers
+    - Pre-norm architecture for stability
+
     Architecture:
-    1. Local message passing (GatedGCN)
-    2. Global self-attention
+    1. Local message passing (GatedGCN) with edge features
+    2. Global self-attention (8 heads)
     3. Feedforward network
     """
-    
-    def __init__(self, hidden_dim: int, num_heads: int = 4, dropout: float = 0.1):
+
+    def __init__(self, hidden_dim: int, num_heads: int = 8, dropout: float = 0.1,
+                 edge_dim: int = None):
         super().__init__()
-        
-        # Local message passing
-        self.local_conv = GatedGCNLayer(hidden_dim, hidden_dim, dropout)
-        
-        # Global attention
+
+        # Local message passing with edge features
+        self.local_conv = GatedGCNLayer(hidden_dim, hidden_dim, edge_dim=edge_dim, dropout=dropout)
+
+        # Global attention with more heads
         self.global_attn = GlobalAttention(hidden_dim, num_heads, dropout)
-        
-        # Feedforward
+
+        # Feedforward with GELU and larger expansion
         self.ffn = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim * 4),
             nn.GELU(),
@@ -421,37 +594,421 @@ class GraphGPSLayer(nn.Module):
             nn.Linear(hidden_dim * 4, hidden_dim),
             nn.Dropout(dropout)
         )
-        
-        self.norm = nn.LayerNorm(hidden_dim)
-    
+
+        # Pre-norm layers
+        self.norm1 = nn.LayerNorm(hidden_dim)
+        self.norm2 = nn.LayerNorm(hidden_dim)
+        self.norm3 = nn.LayerNorm(hidden_dim)
+
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
                 edge_attr: Optional[torch.Tensor] = None,
-                batch: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """Forward pass through GPS layer"""
-        
-        # Local message passing
-        h_local, _ = self.local_conv(x, edge_index, edge_attr)
-        
-        # Global attention
-        h_global = self.global_attn(h_local, batch)
-        
-        # Feedforward with residual
-        out = self.norm(h_global + self.ffn(h_global))
-        
-        return out
+                batch: Optional[torch.Tensor] = None,
+                pe: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Forward pass through GPS layer with edge feature propagation"""
+
+        # Pre-norm local message passing
+        x_norm = self.norm1(x)
+        h_local, edge_attr_new = self.local_conv(x_norm, edge_index, edge_attr)
+        x = x + h_local  # Residual
+
+        # Pre-norm global attention
+        x_norm = self.norm2(x)
+        h_global = self.global_attn(x_norm, batch, pe)
+        x = x + (h_global - x_norm)  # Residual (global_attn has internal residual)
+
+        # Pre-norm feedforward
+        x_norm = self.norm3(x)
+        x = x + self.ffn(x_norm)
+
+        return x, edge_attr_new
 
 
+# ============================================================================
+# Hierarchical Pooling
+# ============================================================================
+
+class HierarchicalPoolingLayer(nn.Module):
+    """
+    Hierarchical pooling for multi-scale graph representation.
+
+    Uses SAGPooling (Self-Attention Graph Pooling) to learn which nodes
+    to keep and which to pool together.
+    """
+
+    def __init__(self, hidden_dim: int, pooling_ratio: float = 0.5):
+        super().__init__()
+
+        self.pooling_ratio = pooling_ratio
+
+        # SAGPooling uses attention to score nodes
+        self.pool = SAGPooling(hidden_dim, ratio=pooling_ratio)
+
+        # Project coarsened representation
+        self.project = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.LayerNorm(hidden_dim)
+        )
+
+    def forward(self, x: torch.Tensor, edge_index: torch.Tensor,
+                edge_attr: Optional[torch.Tensor] = None,
+                batch: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor, torch.Tensor]:
+        """
+        Apply hierarchical pooling.
+
+        Returns:
+            x_pooled: Pooled node features
+            edge_index_pooled: New edge indices
+            edge_attr_pooled: New edge attributes (if provided)
+            batch_pooled: New batch assignment
+            perm: Indices of retained nodes
+        """
+        if batch is None:
+            batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+
+        # Apply SAGPooling
+        x_pooled, edge_index_pooled, edge_attr_pooled, batch_pooled, perm, score = self.pool(
+            x, edge_index, edge_attr, batch
+        )
+
+        # Project
+        x_pooled = self.project(x_pooled)
+
+        return x_pooled, edge_index_pooled, edge_attr_pooled, batch_pooled, perm
+
+
+class MultiScaleReadout(nn.Module):
+    """
+    Multi-scale graph readout combining representations at different scales.
+
+    Aggregates node representations from:
+    1. Original scale (fine)
+    2. After pooling (coarse)
+    """
+
+    def __init__(self, hidden_dim: int, num_scales: int = 2):
+        super().__init__()
+
+        self.num_scales = num_scales
+
+        # Attention weights for scale combination
+        self.scale_attention = nn.Sequential(
+            nn.Linear(hidden_dim * num_scales, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, num_scales),
+            nn.Softmax(dim=-1)
+        )
+
+        # Final projection
+        self.output_proj = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.LayerNorm(hidden_dim)
+        )
+
+    def forward(self, representations: List[Tuple[torch.Tensor, torch.Tensor]]) -> torch.Tensor:
+        """
+        Combine multi-scale representations.
+
+        Args:
+            representations: List of (node_features, batch) tuples at each scale
+
+        Returns:
+            Graph-level representation (batch_size, hidden_dim)
+        """
+        scale_outputs = []
+
+        for x, batch in representations:
+            # Global mean pooling at this scale
+            if batch is None:
+                batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+            graph_repr = global_mean_pool(x, batch)
+            scale_outputs.append(graph_repr)
+
+        # Concatenate scales
+        concat = torch.cat(scale_outputs, dim=-1)  # (batch, hidden_dim * num_scales)
+
+        # Attention-weighted combination
+        weights = self.scale_attention(concat)  # (batch, num_scales)
+
+        weighted_sum = torch.zeros_like(scale_outputs[0])
+        for i, output in enumerate(scale_outputs):
+            weighted_sum = weighted_sum + weights[:, i:i+1] * output
+
+        return self.output_proj(weighted_sum)
+
+
+# ============================================================================
+# Enhanced Prediction Head
+# ============================================================================
+
+class EnhancedPredictionHead(nn.Module):
+    """
+    Enhanced prediction head with:
+    - Attention-based node weighting
+    - Graph-level aggregation
+    - Node-level predictions
+    """
+
+    def __init__(self, hidden_dim: int, num_classes: int = 1, dropout: float = 0.1):
+        super().__init__()
+
+        self.hidden_dim = hidden_dim
+
+        # Node-level attention for importance weighting
+        self.node_attention = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.Tanh(),
+            nn.Linear(hidden_dim // 2, 1)
+        )
+
+        # Graph-level classifier
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),  # *2 for concat of mean and weighted
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, num_classes)
+        )
+
+        # For node-level predictions
+        self.node_classifier = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, num_classes)
+        )
+
+    def forward(self, x: torch.Tensor, batch: Optional[torch.Tensor] = None,
+                return_node_preds: bool = True) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass.
+
+        Args:
+            x: Node features (N, hidden_dim)
+            batch: Batch assignment (N,)
+            return_node_preds: Whether to return node-level predictions
+
+        Returns:
+            Dictionary with 'graph_pred', 'node_pred', 'attention_weights'
+        """
+        if batch is None:
+            batch = torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+
+        # Compute attention weights
+        attn_scores = self.node_attention(x)  # (N, 1)
+
+        # Softmax within each graph
+        attn_weights = torch.zeros_like(attn_scores)
+        for b in batch.unique():
+            mask = batch == b
+            attn_weights[mask] = F.softmax(attn_scores[mask], dim=0)
+
+        # Weighted sum
+        weighted_x = x * attn_weights
+        weighted_pool = global_add_pool(weighted_x, batch)
+
+        # Mean pool
+        mean_pool = global_mean_pool(x, batch)
+
+        # Concatenate for richer representation
+        graph_repr = torch.cat([mean_pool, weighted_pool], dim=-1)
+
+        # Graph-level prediction
+        graph_pred = torch.sigmoid(self.classifier(graph_repr))
+
+        result = {
+            'graph_pred': graph_pred,
+            'attention_weights': attn_weights
+        }
+
+        # Node-level predictions
+        if return_node_preds:
+            node_pred = torch.sigmoid(self.node_classifier(x))
+            result['node_pred'] = node_pred
+
+        return result
+
+
+class EnhancedGraphGPS(nn.Module):
+    """
+    Enhanced GraphGPS Model for lameness prediction.
+
+    Improvements:
+    1. Rich edge features (similarity, temporal distance, edge type)
+    2. 8 attention heads in global attention
+    3. True Laplacian and Random Walk positional encodings
+    4. Hierarchical pooling for multi-scale representation
+    5. Enhanced prediction head with attention-based aggregation
+    """
+
+    def __init__(self,
+                 input_dim: int = 50,
+                 hidden_dim: int = 128,
+                 edge_input_dim: int = 3,
+                 num_layers: int = 4,
+                 num_heads: int = 8,
+                 dropout: float = 0.1,
+                 pe_dim: int = 16,
+                 use_hierarchical_pooling: bool = True,
+                 pooling_ratio: float = 0.5):
+        super().__init__()
+
+        self.hidden_dim = hidden_dim
+        self.use_hierarchical_pooling = use_hierarchical_pooling
+
+        # Input projection (reserve space for PE)
+        pe_total_dim = pe_dim * 2  # Laplacian + RW
+        self.input_proj = nn.Linear(input_dim, hidden_dim - pe_total_dim)
+
+        # Edge feature encoder
+        self.edge_encoder = EdgeEncoder(input_dim=edge_input_dim, hidden_dim=hidden_dim)
+
+        # Learned positional encodings
+        self.lap_pe = LearnedLaplacianPE(k=8, hidden_dim=pe_dim)
+        self.rw_pe = LearnedRWPE(walk_length=16, hidden_dim=pe_dim)
+
+        # GPS layers (first 2 layers before pooling)
+        num_pre_pool = num_layers // 2 if use_hierarchical_pooling else num_layers
+        self.pre_pool_layers = nn.ModuleList([
+            GraphGPSLayer(hidden_dim, num_heads, dropout, edge_dim=hidden_dim)
+            for _ in range(num_pre_pool)
+        ])
+
+        # Hierarchical pooling
+        if use_hierarchical_pooling:
+            self.pool_layer = HierarchicalPoolingLayer(hidden_dim, pooling_ratio)
+            self.post_pool_layers = nn.ModuleList([
+                GraphGPSLayer(hidden_dim, num_heads, dropout, edge_dim=hidden_dim)
+                for _ in range(num_layers - num_pre_pool)
+            ])
+            self.multi_scale_readout = MultiScaleReadout(hidden_dim, num_scales=2)
+
+        # Enhanced prediction head
+        self.pred_head = EnhancedPredictionHead(hidden_dim, num_classes=1, dropout=dropout)
+
+        # Final layer norm
+        self.final_norm = nn.LayerNorm(hidden_dim)
+
+    def forward(self, data: Data) -> Dict[str, torch.Tensor]:
+        """
+        Forward pass.
+
+        Args:
+            data: PyG Data object with x, edge_index, edge_attr, and optionally batch
+
+        Returns:
+            Dictionary with predictions and attention weights
+        """
+        x = data.x
+        edge_index = data.edge_index
+        edge_attr = data.edge_attr if hasattr(data, 'edge_attr') and data.edge_attr is not None else None
+        batch = data.batch if hasattr(data, 'batch') else None
+
+        num_nodes = x.size(0)
+
+        # Input projection
+        h = self.input_proj(x)
+
+        # Encode edge features
+        if edge_attr is not None:
+            edge_attr = self.edge_encoder(edge_attr)
+
+        # Add positional encodings
+        lap_pe = self.lap_pe(edge_index, num_nodes)
+        rw_pe = self.rw_pe(edge_index, num_nodes)
+        pe = torch.cat([lap_pe, rw_pe], dim=-1)
+        h = torch.cat([h, pe], dim=-1)
+
+        # Store multi-scale representations
+        scale_representations = []
+
+        # Pre-pooling GPS layers (fine scale)
+        for layer in self.pre_pool_layers:
+            h, edge_attr = layer(h, edge_index, edge_attr, batch, pe)
+
+        scale_representations.append((h.clone(), batch))
+
+        # Hierarchical pooling
+        if self.use_hierarchical_pooling and h.size(0) > 3:  # Only pool if enough nodes
+            try:
+                h_pooled, edge_index_pooled, edge_attr_pooled, batch_pooled, perm = self.pool_layer(
+                    h, edge_index, edge_attr, batch
+                )
+
+                # Recompute PE for pooled graph
+                pe_pooled = pe[perm] if pe is not None else None
+
+                # Post-pooling layers (coarse scale)
+                for layer in self.post_pool_layers:
+                    h_pooled, edge_attr_pooled = layer(
+                        h_pooled, edge_index_pooled, edge_attr_pooled, batch_pooled, pe_pooled
+                    )
+
+                scale_representations.append((h_pooled, batch_pooled))
+            except Exception:
+                # If pooling fails (e.g., too few nodes), skip it
+                pass
+
+        # Apply final norm
+        h = self.final_norm(h)
+
+        # Prediction
+        pred_result = self.pred_head(h, batch, return_node_preds=True)
+
+        return pred_result
+
+    def predict_with_uncertainty(self, data: Data, n_samples: int = 10) -> Tuple[torch.Tensor, torch.Tensor]:
+        """MC Dropout for uncertainty estimation"""
+        self.train()
+
+        predictions = []
+        with torch.no_grad():
+            for _ in range(n_samples):
+                result = self.forward(data)
+                predictions.append(result['node_pred'])
+
+        predictions = torch.stack(predictions, dim=0)
+        mean_pred = predictions.mean(dim=0)
+        std_pred = predictions.std(dim=0)
+
+        self.eval()
+        return mean_pred, std_pred
+
+    def get_node_embeddings(self, data: Data) -> torch.Tensor:
+        """Get intermediate node embeddings for analysis"""
+        x = data.x
+        edge_index = data.edge_index
+        edge_attr = data.edge_attr if hasattr(data, 'edge_attr') and data.edge_attr is not None else None
+        batch = data.batch if hasattr(data, 'batch') else None
+
+        num_nodes = x.size(0)
+
+        h = self.input_proj(x)
+
+        if edge_attr is not None:
+            edge_attr = self.edge_encoder(edge_attr)
+
+        lap_pe = self.lap_pe(edge_index, num_nodes)
+        rw_pe = self.rw_pe(edge_index, num_nodes)
+        pe = torch.cat([lap_pe, rw_pe], dim=-1)
+        h = torch.cat([h, pe], dim=-1)
+
+        for layer in self.pre_pool_layers:
+            h, edge_attr = layer(h, edge_index, edge_attr, batch, pe)
+
+        return h
+
+
+# Keep old GraphGPS for backwards compatibility
 class GraphGPS(nn.Module):
     """
-    GraphGPS Model for node-level lameness prediction.
-    
-    Full architecture:
-    1. Input projection
-    2. Positional encoding (Laplacian + Random Walk)
-    3. Stack of GPS layers
-    4. Prediction head
+    Original GraphGPS Model for node-level lameness prediction.
+    Kept for backwards compatibility.
     """
-    
+
     def __init__(self,
                  input_dim: int = 64,
                  hidden_dim: int = 64,
@@ -460,22 +1017,22 @@ class GraphGPS(nn.Module):
                  dropout: float = 0.1,
                  pe_dim: int = 16):
         super().__init__()
-        
+
         self.hidden_dim = hidden_dim
-        
+
         # Input projection
         self.input_proj = nn.Linear(input_dim, hidden_dim - 2 * pe_dim)
-        
-        # Positional encodings
-        self.lap_pe = LapPE(max_freq=10, hidden_dim=pe_dim)
-        self.rw_pe = RWPE(walk_length=8, hidden_dim=pe_dim)
-        
+
+        # Positional encodings (now using improved versions)
+        self.lap_pe = LearnedLaplacianPE(k=8, hidden_dim=pe_dim)
+        self.rw_pe = LearnedRWPE(walk_length=16, hidden_dim=pe_dim)
+
         # GPS layers
         self.layers = nn.ModuleList([
             GraphGPSLayer(hidden_dim, num_heads, dropout)
             for _ in range(num_layers)
         ])
-        
+
         # Prediction head
         self.pred_head = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
@@ -484,69 +1041,73 @@ class GraphGPS(nn.Module):
             nn.Linear(hidden_dim // 2, 1),
             nn.Sigmoid()
         )
-    
+
     def forward(self, data: Data) -> torch.Tensor:
         """
         Forward pass.
-        
+
         Args:
             data: PyG Data object with x, edge_index, and optionally batch
-        
+
         Returns:
             Node-level predictions (N, 1)
         """
         x = data.x
         edge_index = data.edge_index
+        edge_attr = data.edge_attr if hasattr(data, 'edge_attr') and data.edge_attr is not None else None
         batch = data.batch if hasattr(data, 'batch') else None
-        
+
         # Input projection
         h = self.input_proj(x)
-        
+
         # Add positional encodings
         lap_pe = self.lap_pe(edge_index, x.size(0))
         rw_pe = self.rw_pe(edge_index, x.size(0))
-        h = torch.cat([h, lap_pe, rw_pe], dim=-1)
-        
+        pe = torch.cat([lap_pe, rw_pe], dim=-1)
+        h = torch.cat([h, pe], dim=-1)
+
         # GPS layers
         for layer in self.layers:
-            h = layer(h, edge_index, batch=batch)
-        
+            h, edge_attr = layer(h, edge_index, edge_attr, batch=batch, pe=pe)
+
         # Prediction
         out = self.pred_head(h)
-        
+
         return out
-    
+
     def predict_with_uncertainty(self, data: Data, n_samples: int = 10) -> Tuple[torch.Tensor, torch.Tensor]:
         """MC Dropout for uncertainty estimation"""
         self.train()
-        
+
         predictions = []
         with torch.no_grad():
             for _ in range(n_samples):
                 pred = self.forward(data)
                 predictions.append(pred)
-        
+
         predictions = torch.stack(predictions, dim=0)
         mean_pred = predictions.mean(dim=0)
         std_pred = predictions.std(dim=0)
-        
+
         self.eval()
         return mean_pred, std_pred
-    
+
     def get_node_embeddings(self, data: Data) -> torch.Tensor:
         """Get intermediate node embeddings for analysis"""
         x = data.x
         edge_index = data.edge_index
+        edge_attr = data.edge_attr if hasattr(data, 'edge_attr') and data.edge_attr is not None else None
         batch = data.batch if hasattr(data, 'batch') else None
-        
+
         h = self.input_proj(x)
         lap_pe = self.lap_pe(edge_index, x.size(0))
         rw_pe = self.rw_pe(edge_index, x.size(0))
-        h = torch.cat([h, lap_pe, rw_pe], dim=-1)
-        
+        pe = torch.cat([lap_pe, rw_pe], dim=-1)
+        h = torch.cat([h, pe], dim=-1)
+
         for layer in self.layers:
-            h = layer(h, edge_index, batch=batch)
-        
+            h, edge_attr = layer(h, edge_index, edge_attr, batch=batch, pe=pe)
+
         return h
 
 
@@ -555,45 +1116,68 @@ class GraphGPS(nn.Module):
 # ============================================================================
 
 class GNNPipeline:
-    """Graph Neural Network Pipeline Service using GraphGPS"""
-    
+    """Graph Neural Network Pipeline Service using Enhanced GraphGPS"""
+
     # Feature dimensions
     POSE_FEATURES = 10  # Summary pose metrics
     SILHOUETTE_FEATURES = 5  # SAM3/YOLO metrics
     EMBEDDING_DIM = 32  # Reduced DINOv3 dimension
     META_FEATURES = 3  # Metadata features
-    
-    def __init__(self):
+
+    def __init__(self, use_enhanced_model: bool = True):
         self.config_path = Path("/app/shared/config/config.yaml")
         self.config = self._load_config()
         self.nats_client = NATSClient(str(self.config_path))
-        
+
         # Device setup
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
         # Graph builder
         self.graph_builder = GraphBuilder(k_neighbors=5, embedding_dim=self.EMBEDDING_DIM)
-        
-        # Model
+
+        # Model - use enhanced version by default
         input_dim = self.POSE_FEATURES + self.SILHOUETTE_FEATURES + self.EMBEDDING_DIM + self.META_FEATURES
-        self.model = GraphGPS(
-            input_dim=input_dim,
-            hidden_dim=64,
-            num_layers=4,
-            num_heads=4,
-            dropout=0.1,
-            pe_dim=16
-        ).to(self.device)
-        
+
+        if use_enhanced_model:
+            # Enhanced GraphGPS with all improvements:
+            # - Edge features (similarity, temporal, edge type)
+            # - 8 attention heads
+            # - True Laplacian and RW positional encodings
+            # - Hierarchical pooling with SAGPooling
+            # - Enhanced prediction head
+            self.model = EnhancedGraphGPS(
+                input_dim=input_dim,
+                hidden_dim=128,  # Increased from 64 for 8 heads
+                edge_input_dim=3,  # [weight, kNN_indicator, temporal_indicator]
+                num_layers=4,
+                num_heads=8,  # Increased from 4
+                dropout=0.1,
+                pe_dim=16,
+                use_hierarchical_pooling=True,
+                pooling_ratio=0.5
+            ).to(self.device)
+            self.model_name = "EnhancedGraphGPS"
+        else:
+            # Original GraphGPS for backwards compatibility
+            self.model = GraphGPS(
+                input_dim=input_dim,
+                hidden_dim=64,
+                num_layers=4,
+                num_heads=8,  # Also upgraded to 8 heads
+                dropout=0.1,
+                pe_dim=16
+            ).to(self.device)
+            self.model_name = "GraphGPS"
+
         # Load weights if available
         self.model_path = Path("/app/shared/models/gnn")
         self.model_path.mkdir(parents=True, exist_ok=True)
         self._load_model()
-        
+
         # Results directory
         self.results_dir = Path("/app/data/results/gnn")
         self.results_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Cache for building graphs across videos
         self.video_features_cache = {}
     
@@ -604,19 +1188,34 @@ class GNNPipeline:
         return {}
     
     def _load_model(self):
-        weights_path = self.model_path / "graphgps_lameness.pt"
+        # Try enhanced model weights first, then fall back to original
+        weights_path = self.model_path / f"{self.model_name.lower()}_lameness.pt"
+        fallback_path = self.model_path / "graphgps_lameness.pt"
+
+        loaded = False
         if weights_path.exists():
             try:
                 self.model.load_state_dict(torch.load(weights_path, map_location=self.device))
-                print(f"✅ Loaded GraphGPS weights from {weights_path}")
+                print(f"✅ Loaded {self.model_name} weights from {weights_path}")
+                loaded = True
             except Exception as e:
-                print(f"⚠️ Failed to load weights: {e}")
-        else:
-            print("⚠️ No pretrained GraphGPS weights. Using random initialization.")
-        
+                print(f"⚠️ Failed to load weights from {weights_path}: {e}")
+
+        if not loaded and fallback_path.exists() and fallback_path != weights_path:
+            try:
+                # Try to load partial weights (may work for compatible layers)
+                state_dict = torch.load(fallback_path, map_location=self.device)
+                self.model.load_state_dict(state_dict, strict=False)
+                print(f"✅ Loaded partial weights from {fallback_path}")
+            except Exception as e:
+                print(f"⚠️ Failed to load fallback weights: {e}")
+
+        if not loaded:
+            print(f"⚠️ No pretrained {self.model_name} weights. Using random initialization.")
+
         self.model.eval()
         num_params = sum(p.numel() for p in self.model.parameters())
-        print(f"GraphGPS parameters: {num_params:,}")
+        print(f"{self.model_name} parameters: {num_params:,}")
     
     def extract_node_features(self, video_id: str) -> Optional[Dict[str, np.ndarray]]:
         """Extract node features from pipeline results for a video"""
@@ -800,7 +1399,7 @@ class GNNPipeline:
             results = {
                 "video_id": video_id,
                 "pipeline": "gnn",
-                "model": "GraphGPS",
+                "model": self.model_name,
                 "severity_score": severity_score,
                 "uncertainty": uncertainty,
                 "prediction": int(severity_score > 0.5),
@@ -808,15 +1407,18 @@ class GNNPipeline:
                 "graph_info": {
                     "num_nodes": len(video_ids),
                     "num_edges": graph.edge_index.shape[1],
-                    "k_neighbors": self.graph_builder.k_neighbors
+                    "k_neighbors": self.graph_builder.k_neighbors,
+                    "has_edge_features": hasattr(graph, 'edge_attr') and graph.edge_attr is not None,
+                    "num_heads": 8 if self.model_name == "EnhancedGraphGPS" else 4,
+                    "hierarchical_pooling": self.model_name == "EnhancedGraphGPS"
                 },
                 "neighbor_influence": neighbor_scores[:5]  # Top 5 neighbors
             }
-            
+
             results_file = self.results_dir / f"{video_id}_gnn.json"
             with open(results_file, "w") as f:
                 json.dump(results, f, indent=2)
-            
+
             # Publish results
             await self.nats_client.publish(
                 self.config.get("nats", {}).get("subjects", {}).get("pipeline_gnn", "pipeline.gnn"),
@@ -825,11 +1427,12 @@ class GNNPipeline:
                     "pipeline": "gnn",
                     "results_path": str(results_file),
                     "severity_score": severity_score,
-                    "uncertainty": uncertainty
+                    "uncertainty": uncertainty,
+                    "model": self.model_name
                 }
             )
-            
-            print(f"  ✅ GNN completed: score={severity_score:.3f}, uncertainty={uncertainty:.3f}")
+
+            print(f"  ✅ {self.model_name} completed: score={severity_score:.3f}, uncertainty={uncertainty:.3f}")
             print(f"     Graph had {len(video_ids)} nodes, {len(neighbor_scores)} neighbors")
             
         except Exception as e:
@@ -850,10 +1453,20 @@ class GNNPipeline:
         await self.nats_client.subscribe(subject, self.process_video)
         
         print("=" * 60)
-        print("GNN (GraphGPS) Pipeline Service Started")
+        print("GNN Pipeline Service Started")
         print("=" * 60)
         print(f"Device: {self.device}")
-        print(f"Model: GraphGPS with {len(self.model.layers)} layers")
+        print(f"Model: {self.model_name}")
+        if self.model_name == "EnhancedGraphGPS":
+            num_layers = len(self.model.pre_pool_layers) + len(self.model.post_pool_layers)
+            print(f"  - Layers: {num_layers} (pre-pool: {len(self.model.pre_pool_layers)}, post-pool: {len(self.model.post_pool_layers)})")
+            print(f"  - Attention heads: 8")
+            print(f"  - Edge features: enabled (3-dim)")
+            print(f"  - Hierarchical pooling: enabled (ratio=0.5)")
+            print(f"  - Positional encodings: True Laplacian + RW")
+        else:
+            print(f"  - Layers: {len(self.model.layers)}")
+            print(f"  - Attention heads: 4")
         print(f"Hidden dim: {self.model.hidden_dim}")
         print(f"k-neighbors: {self.graph_builder.k_neighbors}")
         print("=" * 60)

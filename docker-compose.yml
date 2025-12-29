@@ -170,6 +170,24 @@ services:
       - nats
       - tleap-pipeline
 
+  tracking-service:
+    build:
+      context: .
+      dockerfile: services/tracking-service/Dockerfile
+    volumes:
+      - ./data:/app/data
+      - ./shared:/app/shared
+    environment:
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_URL=postgresql://lameness_user:lameness_pass@postgres:5432/lameness_db
+      - QDRANT_URL=http://qdrant:6333
+    depends_on:
+      - nats
+      - postgres
+      - qdrant
+      - yolo-pipeline
+      - dinov3-pipeline
+
   gnn-pipeline:
     build:
       context: .
@@ -182,6 +200,21 @@ services:
     depends_on:
       - nats
       - dinov3-pipeline
+      - tracking-service
+
+  graph-transformer-pipeline:
+    build:
+      context: .
+      dockerfile: services/graph-transformer-pipeline/Dockerfile
+    volumes:
+      - ./data:/app/data
+      - ./shared:/app/shared
+    environment:
+      - NATS_URL=nats://nats:4222
+    depends_on:
+      - nats
+      - dinov3-pipeline
+      - tracking-service
 
   ml-pipeline:
     build:

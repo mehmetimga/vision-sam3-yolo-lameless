@@ -1,0 +1,18 @@
+name: graph-transformer-pipeline
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - pip
+  - pip:
+    - torch-geometric>=2.4.0
+    - nats-py>=2.6.0
+    - pyyaml>=6.0.1
+    - numpy>=1.24.0
+    - scipy>=1.10.0
+    - networkx>=3.0
+    - pandas>=2.0.0
