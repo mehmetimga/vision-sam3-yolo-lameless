@@ -51,17 +51,52 @@ The system is built as a microservices architecture with Docker containers, usin
 
 ## Quick Start
 
-1. **Clone the repository** (if not already done)
+### Option 1: Fresh Deployment (Recommended)
 
-2. **Start all services with Docker Compose:**
-   ```bash
-   docker-compose up -d
-   ```
+Use the deployment script for a complete setup:
 
-3. **Access the admin interface:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
+```bash
+# Fresh deployment with all initializations
+./scripts/deploy.sh
+
+# Clean start (removes all data and volumes)
+./scripts/deploy.sh --clean
+
+# Skip rebuilding images
+./scripts/deploy.sh --skip-build
+```
+
+This script:
+- Creates required data directories
+- Builds all Docker images
+- Initializes PostgreSQL with all tables
+- Creates Qdrant vector collections
+- Sets up default admin user
+
+### Option 2: Manual Docker Compose
+
+```bash
+# Start all services
+docker compose up -d
+
+# Initialize database (first time or after schema changes)
+docker compose exec postgres psql -U lameness_user -d lameness_db < scripts/init_db.sql
+```
+
+### Access Points
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API Documentation | http://localhost:8000/docs |
+| NATS Monitoring | http://localhost:8222 |
+| Qdrant Dashboard | http://localhost:6333/dashboard |
+
+### Default Credentials
+
+- **Email:** admin@example.com
+- **Password:** adminpass123
 
 ## Development Setup
 
