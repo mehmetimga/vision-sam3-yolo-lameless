@@ -201,7 +201,7 @@ export default function TripletComparison() {
 
       {/* Progress Bar */}
       {stats && (
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-muted rounded-full h-2">
           <div
             className="bg-primary h-2 rounded-full transition-all"
             style={{ width: `${(stats.completed_tasks / stats.total_tasks) * 100}%` }}
@@ -213,8 +213,8 @@ export default function TripletComparison() {
       <div className="flex justify-center">
         <span className={`px-4 py-2 rounded-full text-sm font-medium ${
           task.task_type === 'similarity'
-            ? 'bg-blue-100 text-blue-800'
-            : 'bg-purple-100 text-purple-800'
+            ? 'bg-primary/10 text-primary'
+            : 'bg-secondary text-secondary-foreground'
         }`}>
           {task.task_type === 'similarity' ? '🔗 Similarity Task' : '↔️ Dissimilarity Task'}
         </span>
@@ -230,11 +230,11 @@ export default function TripletComparison() {
         {/* Reference Video (Center/Top) */}
         <div className="col-span-3 md:col-span-1 md:col-start-2">
           <div className="text-center mb-2">
-            <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+            <span className="inline-block px-3 py-1 bg-warning/20 text-warning rounded-full text-sm font-medium">
               Reference Cow
             </span>
           </div>
-          <div className="border-4 border-yellow-400 rounded-lg overflow-hidden">
+          <div className="border-4 border-warning rounded-lg overflow-hidden">
             <video
               ref={refVideoRef}
               src={videosApi.getStreamUrl(task.reference_id)}
@@ -248,13 +248,13 @@ export default function TripletComparison() {
         {/* Comparison A */}
         <div className="col-span-3 md:col-span-1 md:col-start-1 md:row-start-2">
           <div className="text-center mb-2">
-            <span className="text-sm font-medium text-gray-600">Comparison A</span>
+            <span className="text-sm font-medium text-muted-foreground">Comparison A</span>
           </div>
           <div
             className={`border-4 rounded-lg overflow-hidden cursor-pointer transition-all ${
               selectedAnswer === 'A'
-                ? 'border-green-500 ring-4 ring-green-200'
-                : 'border-transparent hover:border-gray-300'
+                ? 'border-success ring-4 ring-success/30'
+                : 'border-transparent hover:border-border'
             }`}
             onClick={() => setSelectedAnswer('A')}
           >
@@ -271,8 +271,8 @@ export default function TripletComparison() {
               onClick={() => setSelectedAnswer('A')}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 selectedAnswer === 'A'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  ? 'bg-success text-white'
+                  : 'bg-muted hover:bg-accent text-foreground'
               }`}
             >
               Select A (Press 1)
@@ -282,19 +282,19 @@ export default function TripletComparison() {
 
         {/* VS Indicator */}
         <div className="col-span-3 md:col-span-1 md:row-start-2 flex items-center justify-center">
-          <div className="text-4xl font-bold text-gray-300">VS</div>
+          <div className="text-4xl font-bold text-muted-foreground/50">VS</div>
         </div>
 
         {/* Comparison B */}
         <div className="col-span-3 md:col-span-1 md:col-start-3 md:row-start-2">
           <div className="text-center mb-2">
-            <span className="text-sm font-medium text-gray-600">Comparison B</span>
+            <span className="text-sm font-medium text-muted-foreground">Comparison B</span>
           </div>
           <div
             className={`border-4 rounded-lg overflow-hidden cursor-pointer transition-all ${
               selectedAnswer === 'B'
-                ? 'border-green-500 ring-4 ring-green-200'
-                : 'border-transparent hover:border-gray-300'
+                ? 'border-success ring-4 ring-success/30'
+                : 'border-transparent hover:border-border'
             }`}
             onClick={() => setSelectedAnswer('B')}
           >
@@ -311,8 +311,8 @@ export default function TripletComparison() {
               onClick={() => setSelectedAnswer('B')}
               className={`px-6 py-2 rounded-lg font-medium transition-all ${
                 selectedAnswer === 'B'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  ? 'bg-success text-white'
+                  : 'bg-muted hover:bg-accent text-foreground'
               }`}
             >
               Select B (Press 2)
@@ -325,13 +325,13 @@ export default function TripletComparison() {
       <div className="flex justify-center gap-4">
         <button
           onClick={restartVideos}
-          className="px-6 py-2 border rounded-lg hover:bg-accent"
+          className="px-6 py-2 border border-border rounded-lg hover:bg-accent"
         >
           ↺ Restart All
         </button>
         <button
           onClick={togglePlayback}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         >
           {isPlaying ? '⏸ Pause' : '▶ Play All'}
         </button>
@@ -362,14 +362,14 @@ export default function TripletComparison() {
         <button
           onClick={handleSubmit}
           disabled={selectedAnswer === null || submitting}
-          className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-3 bg-success text-white rounded-lg font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? 'Submitting...' : 'Submit & Next (Enter)'}
         </button>
       </div>
 
       {/* Instructions */}
-      <div className="bg-gray-50 rounded-lg p-4 text-sm text-muted-foreground">
+      <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
         <h4 className="font-semibold mb-2">How to Compare</h4>
         <ul className="list-disc list-inside space-y-1">
           <li>Watch the <strong>Reference cow</strong> carefully first</li>
@@ -385,10 +385,10 @@ export default function TripletComparison() {
 
       {/* Keyboard shortcuts */}
       <div className="text-center text-xs text-muted-foreground">
-        Shortcuts: <kbd className="px-1 bg-gray-100 rounded">1/A</kbd> select A,{' '}
-        <kbd className="px-1 bg-gray-100 rounded">2/B</kbd> select B,{' '}
-        <kbd className="px-1 bg-gray-100 rounded">Space</kbd> play/pause,{' '}
-        <kbd className="px-1 bg-gray-100 rounded">Enter</kbd> submit
+        Shortcuts: <kbd className="px-1 bg-muted rounded">1/A</kbd> select A,{' '}
+        <kbd className="px-1 bg-muted rounded">2/B</kbd> select B,{' '}
+        <kbd className="px-1 bg-muted rounded">Space</kbd> play/pause,{' '}
+        <kbd className="px-1 bg-muted rounded">Enter</kbd> submit
       </div>
     </div>
   )

@@ -139,8 +139,8 @@ export default function VideoAnalysis() {
           {currentLabel !== null && (
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               currentLabel === 0
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
+                ? 'bg-success/20 text-success'
+                : 'bg-destructive/20 text-destructive'
             }`}>
               Labeled: {currentLabel === 0 ? 'Sound' : 'Lame'}
             </span>
@@ -171,9 +171,9 @@ export default function VideoAnalysis() {
 
           {/* Detection Timeline */}
           {detections.length > 0 && (
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm font-semibold mb-3">Detection Timeline</h3>
-              <div className="relative h-8 bg-gray-100 rounded overflow-hidden">
+            <div className="border border-border rounded-lg p-4 bg-card">
+              <h3 className="text-sm font-semibold mb-3 text-foreground">Detection Timeline</h3>
+              <div className="relative h-8 bg-muted rounded overflow-hidden">
                 {/* Detection markers */}
                 {detections.map((det, idx) => {
                   const totalFrames = video.metadata?.frame_count || 1
@@ -207,8 +207,8 @@ export default function VideoAnalysis() {
 
           {/* Current Frame Detections */}
           {currentDetections && currentDetections.detections.length > 0 && (
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm font-semibold mb-2">
+            <div className="border border-border rounded-lg p-4 bg-card">
+              <h3 className="text-sm font-semibold mb-2 text-foreground">
                 Frame {currentFrame} Detections ({currentDetections.detections.length})
               </h3>
               <div className="space-y-2">
@@ -228,12 +228,12 @@ export default function VideoAnalysis() {
         {/* Right sidebar */}
         <div className="space-y-6">
           {/* Prediction Card */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Prediction</h3>
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Prediction</h3>
             
             <div className="text-center mb-6">
               <div className={`text-4xl font-bold ${
-                prediction === 1 ? 'text-red-600' : 'text-green-600'
+                prediction === 1 ? 'text-destructive' : 'text-success'
               }`}>
                 {prediction === 1 ? 'Lame' : 'Sound'}
               </div>
@@ -273,17 +273,17 @@ export default function VideoAnalysis() {
           </div>
 
           {/* SHAP Explanation */}
-          <div className="border rounded-lg p-6">
+          <div className="border border-border rounded-lg p-6 bg-card">
             <ShapExplanation videoId={videoId!} />
           </div>
 
           {/* Labeling Controls */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Label Video</h3>
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Label Video</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Review the video and provide your expert label. 
-              Keyboard shortcuts: <kbd className="px-1 bg-gray-100 rounded">S</kbd> for Sound, 
-              <kbd className="px-1 bg-gray-100 rounded ml-1">L</kbd> for Lame.
+              Keyboard shortcuts: <kbd className="px-1 bg-muted rounded">S</kbd> for Sound, 
+              <kbd className="px-1 bg-muted rounded ml-1">L</kbd> for Lame.
             </p>
             <div className="flex gap-3">
               <button
@@ -291,8 +291,8 @@ export default function VideoAnalysis() {
                 disabled={labeling}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   currentLabel === 0
-                    ? 'bg-green-600 text-white'
-                    : 'bg-green-100 text-green-800 hover:bg-green-200'
+                    ? 'bg-success text-white'
+                    : 'bg-success/20 text-success hover:bg-success/30'
                 } disabled:opacity-50`}
               >
                 {labeling ? '...' : '✓ Sound'}
@@ -302,8 +302,8 @@ export default function VideoAnalysis() {
                 disabled={labeling}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   currentLabel === 1
-                    ? 'bg-red-600 text-white'
-                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                    ? 'bg-destructive text-white'
+                    : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
                 } disabled:opacity-50`}
               >
                 {labeling ? '...' : '✗ Lame'}
@@ -312,8 +312,8 @@ export default function VideoAnalysis() {
           </div>
 
           {/* Video Metadata */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-sm font-semibold mb-3">Video Details</h3>
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-sm font-semibold mb-3 text-foreground">Video Details</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Video ID</dt>
@@ -338,7 +338,7 @@ export default function VideoAnalysis() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Status</dt>
                 <dd className={`capitalize ${
-                  video.has_analysis ? 'text-green-600' : 'text-yellow-600'
+                  video.has_analysis ? 'text-success' : 'text-warning'
                 }`}>
                   {video.status}
                 </dd>

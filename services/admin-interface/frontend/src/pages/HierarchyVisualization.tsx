@@ -156,10 +156,10 @@ export default function HierarchyVisualization() {
 
   const getCategoryBg = (category: string) => {
     switch (category) {
-      case 'lame': return 'bg-red-100'
-      case 'intermediate': return 'bg-yellow-100'
-      case 'healthy': return 'bg-green-100'
-      default: return 'bg-gray-100'
+      case 'lame': return 'bg-destructive/10'
+      case 'intermediate': return 'bg-warning/10'
+      case 'healthy': return 'bg-success/10'
+      default: return 'bg-muted'
     }
   }
 
@@ -214,7 +214,7 @@ export default function HierarchyVisualization() {
 
       {/* Hierarchy Metrics - Based on Research Paper */}
       {metrics && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+        <div className="bg-gradient-to-r from-primary/5 to-secondary/10 border border-border rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Hierarchy Quality Metrics</h3>
           <div className="grid grid-cols-4 gap-6">
             <div className="text-center">
@@ -250,8 +250,8 @@ export default function HierarchyVisualization() {
           </div>
 
           {/* Steepness interpretation */}
-          <div className="mt-4 p-3 bg-white/50 rounded-lg">
-            <p className="text-sm text-gray-600">
+          <div className="mt-4 p-3 bg-card/50 rounded-lg">
+            <p className="text-sm text-muted-foreground">
               <strong>Steepness</strong> measures hierarchy linearity (0-1). Values &gt;0.7 indicate a clear,
               linear hierarchy. Based on the EloSteepness methodology from the research paper.
             </p>
@@ -263,27 +263,27 @@ export default function HierarchyVisualization() {
       <div className="flex justify-between items-center">
         {/* Stats Summary */}
         <div className="flex gap-4">
-          <div className="border rounded-lg px-4 py-2 text-center">
-            <div className="text-xl font-bold">{ranking.length}</div>
+          <div className="border border-border rounded-lg px-4 py-2 text-center bg-card">
+            <div className="text-xl font-bold text-foreground">{ranking.length}</div>
             <div className="text-xs text-muted-foreground">Videos</div>
           </div>
-          <div className="border rounded-lg px-4 py-2 text-center bg-red-50">
-            <div className="text-xl font-bold text-red-600">
+          <div className="border border-destructive/30 rounded-lg px-4 py-2 text-center bg-destructive/10">
+            <div className="text-xl font-bold text-destructive">
               {ranking.filter(r => r.category === 'lame').length}
             </div>
-            <div className="text-xs text-red-600">Lame</div>
+            <div className="text-xs text-destructive">Lame</div>
           </div>
-          <div className="border rounded-lg px-4 py-2 text-center bg-yellow-50">
-            <div className="text-xl font-bold text-yellow-600">
+          <div className="border border-warning/30 rounded-lg px-4 py-2 text-center bg-warning/10">
+            <div className="text-xl font-bold text-warning">
               {ranking.filter(r => r.category === 'intermediate').length}
             </div>
-            <div className="text-xs text-yellow-600">Intermediate</div>
+            <div className="text-xs text-warning">Intermediate</div>
           </div>
-          <div className="border rounded-lg px-4 py-2 text-center bg-green-50">
-            <div className="text-xl font-bold text-green-600">
+          <div className="border border-success/30 rounded-lg px-4 py-2 text-center bg-success/10">
+            <div className="text-xl font-bold text-success">
               {ranking.filter(r => r.category === 'healthy').length}
             </div>
-            <div className="text-xs text-green-600">Healthy</div>
+            <div className="text-xs text-success">Healthy</div>
           </div>
         </div>
 
@@ -292,7 +292,7 @@ export default function HierarchyVisualization() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
+            className="px-3 py-2 border border-border rounded-lg bg-background text-foreground"
           >
             <option value="all">All Categories</option>
             <option value="lame">Lame Only</option>
@@ -320,8 +320,8 @@ export default function HierarchyVisualization() {
 
       {/* Bar Chart View - Elo Ratings */}
       {viewMode === 'bar' && (
-        <div className="border rounded-lg p-6" ref={chartRef}>
-          <h3 className="text-lg font-semibold mb-4">Elo Rating Distribution</h3>
+        <div className="border border-border rounded-lg p-6 bg-card" ref={chartRef}>
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Elo Rating Distribution</h3>
           <div className="space-y-2">
             {filteredRanking.map((item) => {
               const barWidth = ((item.elo_rating - minElo) / eloRange) * 100
@@ -342,7 +342,7 @@ export default function HierarchyVisualization() {
                   <div className="w-8 text-right text-sm text-muted-foreground">
                     #{item.rank}
                   </div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden relative">
+                  <div className="flex-1 bg-muted rounded-full h-6 overflow-hidden relative">
                     <div
                       className={`h-full ${barColor} transition-all group-hover:opacity-80`}
                       style={{
@@ -395,8 +395,8 @@ export default function HierarchyVisualization() {
 
       {/* David's Score View */}
       {viewMode === 'davids' && (
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">David's Score Distribution</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">David's Score Distribution</h3>
           <p className="text-sm text-muted-foreground mb-4">
             David's Score accounts for win quality - wins against strong opponents count more.
             Range: 0 (most healthy) to 1 (most lame).
@@ -423,7 +423,7 @@ export default function HierarchyVisualization() {
                     <div className="w-8 text-right text-sm text-muted-foreground">
                       #{idx + 1}
                     </div>
-                    <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
+                    <div className="flex-1 bg-muted rounded-full h-6 overflow-hidden">
                       <div
                         className={`h-full ${barColor} transition-all group-hover:opacity-80`}
                         style={{ width: `${Math.max(5, barWidth)}%` }}
@@ -444,8 +444,8 @@ export default function HierarchyVisualization() {
 
       {/* Distribution View */}
       {viewMode === 'distribution' && (
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Category Distribution</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Category Distribution</h3>
           <div className="flex items-end justify-center gap-8 h-64">
             {distributionBins.map((bin) => (
               <div key={bin.label} className="flex flex-col items-center">
@@ -465,25 +465,25 @@ export default function HierarchyVisualization() {
 
       {/* List View */}
       {viewMode === 'list' && (
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border border-border rounded-lg overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium">Rank</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Video ID</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Elo Rating</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">David's Score</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Category</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">W/L/T</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Confidence</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Rank</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Video ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Elo Rating</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">David's Score</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Category</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">W/L/T</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Confidence</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredRanking.map((item) => (
                 <tr
                   key={item.video_id}
-                  className="border-t hover:bg-gray-50 cursor-pointer"
+                  className="border-t border-border hover:bg-muted/30 cursor-pointer"
                   onClick={() => {
                     setSelectedVideo(item.video_id)
                     loadVideoHistory(item.video_id)
@@ -518,7 +518,7 @@ export default function HierarchyVisualization() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                      <div className="w-16 bg-muted rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${
                             item.confidence > 0.7 ? 'bg-green-500' :
@@ -552,11 +552,11 @@ export default function HierarchyVisualization() {
 
       {/* Snapshots Section */}
       {snapshots.length > 0 && (
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Saved Snapshots</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Saved Snapshots</h3>
           <div className="grid grid-cols-3 gap-4">
             {snapshots.map((snapshot) => (
-              <div key={snapshot.id} className="border rounded-lg p-4 hover:bg-gray-50">
+              <div key={snapshot.id} className="border border-border rounded-lg p-4 hover:bg-muted/50">
                 <div className="font-medium">{snapshot.name}</div>
                 {snapshot.description && (
                   <div className="text-sm text-muted-foreground mt-1">{snapshot.description}</div>
@@ -579,7 +579,7 @@ export default function HierarchyVisualization() {
       {/* Video Preview Popup */}
       {hoveredVideo && (
         <div
-          className="fixed z-50 bg-white rounded-lg shadow-xl border overflow-hidden"
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden"
           style={{
             left: hoveredVideo.x - 150,
             top: hoveredVideo.y - 180,
@@ -602,15 +602,15 @@ export default function HierarchyVisualization() {
       {/* Selected Video Modal */}
       {selectedVideo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-3xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
-              <h3 className="font-semibold">Video Details</h3>
+          <div className="bg-card border border-border rounded-lg max-w-3xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="p-4 border-b border-border flex justify-between items-center sticky top-0 bg-card">
+              <h3 className="font-semibold text-foreground">Video Details</h3>
               <button
                 onClick={() => {
                   setSelectedVideo(null)
                   setVideoHistory(null)
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 X
               </button>
@@ -628,7 +628,7 @@ export default function HierarchyVisualization() {
                 {ranking.filter(r => r.video_id === selectedVideo).map(item => (
                   <div key={item.video_id} className="col-span-2">
                     <div className="grid grid-cols-5 gap-4">
-                      <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-center p-3 bg-muted rounded">
                         <div className="text-2xl font-bold">#{item.rank}</div>
                         <div className="text-xs text-muted-foreground">Rank</div>
                       </div>
@@ -638,21 +638,21 @@ export default function HierarchyVisualization() {
                         </div>
                         <div className="text-xs text-muted-foreground">Elo Rating</div>
                       </div>
-                      <div className="text-center p-3 bg-blue-50 rounded">
-                        <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-center p-3 bg-primary/10 rounded">
+                        <div className="text-2xl font-bold text-primary">
                           {item.davids_score.toFixed(3)}
                         </div>
                         <div className="text-xs text-muted-foreground">David's Score</div>
                       </div>
-                      <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-center p-3 bg-muted rounded">
                         <div className="text-xl font-bold">
-                          <span className="text-green-600">{item.wins}</span>/
-                          <span className="text-red-600">{item.losses}</span>/
-                          <span className="text-gray-600">{item.ties}</span>
+                          <span className="text-success">{item.wins}</span>/
+                          <span className="text-destructive">{item.losses}</span>/
+                          <span className="text-muted-foreground">{item.ties}</span>
                         </div>
                         <div className="text-xs text-muted-foreground">W/L/T</div>
                       </div>
-                      <div className="text-center p-3 bg-gray-50 rounded">
+                      <div className="text-center p-3 bg-muted rounded">
                         <div className="text-2xl font-bold">{(item.confidence * 100).toFixed(0)}%</div>
                         <div className="text-xs text-muted-foreground">Confidence</div>
                       </div>
@@ -663,8 +663,8 @@ export default function HierarchyVisualization() {
 
               {/* Elo History Chart */}
               {videoHistory && videoHistory.history?.length > 0 && (
-                <div className="mt-4 border rounded-lg p-4">
-                  <h4 className="font-medium mb-3">Elo Rating History</h4>
+                <div className="mt-4 border border-border rounded-lg p-4">
+                  <h4 className="font-medium mb-3 text-foreground">Elo Rating History</h4>
                   <div className="h-32 flex items-end gap-1">
                     {videoHistory.history.slice(-30).map((h: any, idx: number) => {
                       const minH = Math.min(...videoHistory.history.map((x: any) => x.elo_rating))
@@ -691,7 +691,7 @@ export default function HierarchyVisualization() {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => window.open(`/analysis/${selectedVideo}`, '_blank')}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                 >
                   Full Analysis
                 </button>
@@ -700,7 +700,7 @@ export default function HierarchyVisualization() {
                     setSelectedVideo(null)
                     setVideoHistory(null)
                   }}
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-accent"
                 >
                   Close
                 </button>
@@ -713,25 +713,25 @@ export default function HierarchyVisualization() {
       {/* Create Snapshot Modal */}
       {showSnapshotModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold mb-4">Create Hierarchy Snapshot</h3>
+          <div className="bg-card border border-border rounded-lg max-w-md w-full mx-4 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Create Hierarchy Snapshot</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Name</label>
                 <input
                   type="text"
                   value={snapshotName}
                   onChange={(e) => setSnapshotName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                   placeholder="e.g., Week 1 Assessment"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Description (optional)</label>
                 <textarea
                   value={snapshotDescription}
                   onChange={(e) => setSnapshotDescription(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                   rows={3}
                   placeholder="Notes about this snapshot..."
                 />
@@ -740,13 +740,13 @@ export default function HierarchyVisualization() {
                 <button
                   onClick={handleCreateSnapshot}
                   disabled={!snapshotName.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50 hover:bg-primary/90"
                 >
                   Create Snapshot
                 </button>
                 <button
                   onClick={() => setShowSnapshotModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-accent"
                 >
                   Cancel
                 </button>

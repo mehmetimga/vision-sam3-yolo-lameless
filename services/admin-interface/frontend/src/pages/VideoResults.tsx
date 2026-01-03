@@ -145,10 +145,10 @@ export default function VideoResults() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />
-      case 'error': return <XCircle className="h-5 w-5 text-red-500" />
-      case 'pending': return <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
-      case 'not_available': return <AlertCircle className="h-5 w-5 text-gray-400" />
+      case 'success': return <CheckCircle className="h-5 w-5 text-success" />
+      case 'error': return <XCircle className="h-5 w-5 text-destructive" />
+      case 'pending': return <Loader2 className="h-5 w-5 text-warning animate-spin" />
+      case 'not_available': return <AlertCircle className="h-5 w-5 text-muted-foreground" />
       default: return null
     }
   }
@@ -215,7 +215,7 @@ export default function VideoResults() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Severity Score</div>
-          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-destructive' : 'text-success'}`}>
             {(data.severity_score * 100).toFixed(1)}%
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function VideoResults() {
         </div>
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Prediction</div>
-          <div className={`text-2xl font-bold ${data.prediction === 1 ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`text-2xl font-bold ${data.prediction === 1 ? 'text-destructive' : 'text-success'}`}>
             {data.prediction === 1 ? 'Lame' : 'Healthy'}
           </div>
         </div>
@@ -242,7 +242,7 @@ export default function VideoResults() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Severity Score</div>
-          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`text-2xl font-bold ${data.severity_score > 0.5 ? 'text-destructive' : 'text-success'}`}>
             {(data.severity_score * 100).toFixed(1)}%
           </div>
         </div>
@@ -262,7 +262,7 @@ export default function VideoResults() {
             {data.neighbor_influence.slice(0, 5).map((neighbor: any, idx: number) => (
               <div key={idx} className="flex justify-between text-sm bg-muted/30 px-3 py-2 rounded">
                 <span className="font-mono text-xs">{neighbor.video_id.slice(0, 8)}...</span>
-                <span className={neighbor.score > 0.5 ? 'text-red-500' : 'text-green-500'}>
+                <span className={neighbor.score > 0.5 ? 'text-destructive' : 'text-success'}>
                   {(neighbor.score * 100).toFixed(1)}%
                 </span>
               </div>
@@ -278,7 +278,7 @@ export default function VideoResults() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-muted/50 rounded-lg p-4">
           <div className="text-sm text-muted-foreground">Neighbor Evidence</div>
-          <div className={`text-2xl font-bold ${data.neighbor_evidence > 0.5 ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`text-2xl font-bold ${data.neighbor_evidence > 0.5 ? 'text-destructive' : 'text-success'}`}>
             {(data.neighbor_evidence * 100).toFixed(1)}%
           </div>
         </div>
@@ -311,18 +311,18 @@ export default function VideoResults() {
             <h3 className="font-semibold text-lg">Ensemble Prediction</h3>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               ensemble.prediction === 1
-                ? 'bg-red-100 text-red-700'
-                : 'bg-green-100 text-green-700'
+                ? 'bg-destructive/10 text-destructive'
+                : 'bg-success/10 text-success'
             }`}>
               {ensemble.prediction === 1 ? 'LAME' : 'HEALTHY'}
             </span>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-6 bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all ${
-                    (ensemble.probability || 0) > 0.5 ? 'bg-red-500' : 'bg-green-500'
+                    (ensemble.probability || 0) > 0.5 ? 'bg-destructive' : 'bg-success'
                   }`}
                   style={{ width: `${(ensemble.probability || 0) * 100}%` }}
                 />
@@ -339,12 +339,12 @@ export default function VideoResults() {
           <h3 className="font-semibold mb-3">Individual Model Predictions</h3>
           <div className="grid md:grid-cols-3 gap-4">
             {/* CatBoost */}
-            <div className="border rounded-lg p-4">
+            <div className="border border-border rounded-lg p-4 bg-card">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 bg-blue-500 rounded" />
+                <div className="w-3 h-3 bg-info rounded" />
                 <span className="font-medium">CatBoost</span>
                 {ensemble.weights?.catboost && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-auto">
+                  <span className="text-xs bg-info/10 text-info px-2 py-0.5 rounded ml-auto">
                     {((ensemble.weights.catboost) * 100).toFixed(0)}% weight
                   </span>
                 )}
@@ -353,23 +353,23 @@ export default function VideoResults() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Probability</span>
                   <span className={`font-medium ${
-                    (catboost.probability || 0) > 0.5 ? 'text-red-600' : 'text-green-600'
+                    (catboost.probability || 0) > 0.5 ? 'text-destructive' : 'text-success'
                   }`}>
                     {catboost.probability !== undefined
                       ? `${(catboost.probability * 100).toFixed(1)}%`
                       : 'N/A'}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${(catboost.probability || 0) > 0.5 ? 'bg-red-400' : 'bg-green-400'}`}
+                    className={`h-full ${(catboost.probability || 0) > 0.5 ? 'bg-destructive/80' : 'bg-success/80'}`}
                     style={{ width: `${(catboost.probability || 0) * 100}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Prediction</span>
                   <span className={`font-medium ${
-                    catboost.prediction === 1 ? 'text-red-600' : 'text-green-600'
+                    catboost.prediction === 1 ? 'text-destructive' : 'text-success'
                   }`}>
                     {catboost.prediction !== undefined
                       ? (catboost.prediction === 1 ? 'Lame' : 'Healthy')
@@ -380,12 +380,12 @@ export default function VideoResults() {
             </div>
 
             {/* XGBoost */}
-            <div className="border rounded-lg p-4">
+            <div className="border border-border rounded-lg p-4 bg-card">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-3 h-3 bg-green-500 rounded" />
+                <div className="w-3 h-3 bg-success rounded" />
                 <span className="font-medium">XGBoost</span>
                 {ensemble.weights?.xgboost && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded ml-auto">
+                  <span className="text-xs bg-success/10 text-success px-2 py-0.5 rounded ml-auto">
                     {((ensemble.weights.xgboost) * 100).toFixed(0)}% weight
                   </span>
                 )}
@@ -394,23 +394,23 @@ export default function VideoResults() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Probability</span>
                   <span className={`font-medium ${
-                    (xgboost.probability || 0) > 0.5 ? 'text-red-600' : 'text-green-600'
+                    (xgboost.probability || 0) > 0.5 ? 'text-destructive' : 'text-success'
                   }`}>
                     {xgboost.probability !== undefined
                       ? `${(xgboost.probability * 100).toFixed(1)}%`
                       : 'N/A'}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${(xgboost.probability || 0) > 0.5 ? 'bg-red-400' : 'bg-green-400'}`}
+                    className={`h-full ${(xgboost.probability || 0) > 0.5 ? 'bg-destructive/80' : 'bg-success/80'}`}
                     style={{ width: `${(xgboost.probability || 0) * 100}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Prediction</span>
                   <span className={`font-medium ${
-                    xgboost.prediction === 1 ? 'text-red-600' : 'text-green-600'
+                    xgboost.prediction === 1 ? 'text-destructive' : 'text-success'
                   }`}>
                     {xgboost.prediction !== undefined
                       ? (xgboost.prediction === 1 ? 'Lame' : 'Healthy')
@@ -421,12 +421,12 @@ export default function VideoResults() {
             </div>
 
             {/* LightGBM */}
-            <div className="border rounded-lg p-4">
+            <div className="border border-border rounded-lg p-4 bg-card">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-3 h-3 bg-purple-500 rounded" />
                 <span className="font-medium">LightGBM</span>
                 {ensemble.weights?.lightgbm && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded ml-auto">
+                  <span className="text-xs bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded ml-auto">
                     {((ensemble.weights.lightgbm) * 100).toFixed(0)}% weight
                   </span>
                 )}
@@ -435,23 +435,23 @@ export default function VideoResults() {
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Probability</span>
                   <span className={`font-medium ${
-                    (lightgbm.probability || 0) > 0.5 ? 'text-red-600' : 'text-green-600'
+                    (lightgbm.probability || 0) > 0.5 ? 'text-destructive' : 'text-success'
                   }`}>
                     {lightgbm.probability !== undefined
                       ? `${(lightgbm.probability * 100).toFixed(1)}%`
                       : 'N/A'}
                   </span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full ${(lightgbm.probability || 0) > 0.5 ? 'bg-red-400' : 'bg-green-400'}`}
+                    className={`h-full ${(lightgbm.probability || 0) > 0.5 ? 'bg-destructive/80' : 'bg-success/80'}`}
                     style={{ width: `${(lightgbm.probability || 0) * 100}%` }}
                   />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Prediction</span>
                   <span className={`font-medium ${
-                    lightgbm.prediction === 1 ? 'text-red-600' : 'text-green-600'
+                    lightgbm.prediction === 1 ? 'text-destructive' : 'text-success'
                   }`}>
                     {lightgbm.prediction !== undefined
                       ? (lightgbm.prediction === 1 ? 'Lame' : 'Healthy')
@@ -464,12 +464,12 @@ export default function VideoResults() {
         </div>
 
         {/* Model Agreement Visualization */}
-        <div className="border rounded-lg p-4">
+        <div className="border border-border rounded-lg p-4 bg-card">
           <h3 className="font-semibold mb-3">Model Agreement</h3>
           <div className="flex items-center gap-4">
             <div className="flex-1 h-8 flex rounded overflow-hidden">
               <div
-                className="bg-blue-500 flex items-center justify-center text-white text-xs font-medium"
+                className="bg-info flex items-center justify-center text-primary-foreground text-xs font-medium"
                 style={{
                   width: `${(ensemble.weights?.catboost || 0.33) * 100}%`,
                   opacity: catboost.prediction === ensemble.prediction ? 1 : 0.3
@@ -478,7 +478,7 @@ export default function VideoResults() {
                 {catboost.prediction === ensemble.prediction ? 'Agrees' : 'Disagrees'}
               </div>
               <div
-                className="bg-green-500 flex items-center justify-center text-white text-xs font-medium"
+                className="bg-success flex items-center justify-center text-primary-foreground text-xs font-medium"
                 style={{
                   width: `${(ensemble.weights?.xgboost || 0.33) * 100}%`,
                   opacity: xgboost.prediction === ensemble.prediction ? 1 : 0.3
@@ -487,7 +487,7 @@ export default function VideoResults() {
                 {xgboost.prediction === ensemble.prediction ? 'Agrees' : 'Disagrees'}
               </div>
               <div
-                className="bg-purple-500 flex items-center justify-center text-white text-xs font-medium"
+                className="bg-purple-500 flex items-center justify-center text-primary-foreground text-xs font-medium"
                 style={{
                   width: `${(ensemble.weights?.lightgbm || 0.34) * 100}%`,
                   opacity: lightgbm.prediction === ensemble.prediction ? 1 : 0.3
@@ -504,7 +504,7 @@ export default function VideoResults() {
 
         {/* Feature Values */}
         {features.length > 0 && featureNames.length > 0 && (
-          <div className="border rounded-lg p-4">
+          <div className="border border-border rounded-lg p-4 bg-card">
             <h3 className="font-semibold mb-3">Input Features</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {featureNames.map((name: string, idx: number) => (
@@ -545,7 +545,7 @@ export default function VideoResults() {
         <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
           <div className="text-sm text-muted-foreground mb-2">Final Lameness Prediction</div>
           <div className={`text-5xl font-bold mb-2 ${
-            fusion.final_prediction === 1 ? 'text-red-500' : 'text-green-500'
+            fusion.final_prediction === 1 ? 'text-destructive' : 'text-success'
           }`}>
             {fusion.final_prediction === 1 ? 'LAME' : 'HEALTHY'}
           </div>
@@ -554,9 +554,9 @@ export default function VideoResults() {
           </div>
           {/* Confidence bar */}
           <div className="mt-4 max-w-md mx-auto">
-            <div className="h-4 bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full relative">
+            <div className="h-4 bg-gradient-to-r from-success via-warning to-destructive rounded-full relative">
               <div
-                className="absolute top-1/2 w-1 h-6 bg-black rounded -translate-y-1/2 shadow-lg"
+                className="absolute top-1/2 w-1 h-6 bg-foreground rounded -translate-y-1/2 shadow-lg"
                 style={{ left: `${(fusion.final_probability || 0.5) * 100}%` }}
               />
             </div>
@@ -582,7 +582,7 @@ export default function VideoResults() {
                     <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
                       <div
                         className={`h-full transition-all ${
-                          score > 0.5 ? 'bg-red-400' : 'bg-green-400'
+                          score > 0.5 ? 'bg-destructive/80' : 'bg-success/80'
                         }`}
                         style={{ width: `${score * 100}%` }}
                       />
@@ -633,7 +633,7 @@ export default function VideoResults() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
         <h2 className="text-xl font-bold mb-2">Failed to load results</h2>
         <p className="text-muted-foreground mb-4">{error}</p>
         <button
@@ -674,7 +674,7 @@ export default function VideoResults() {
           </button>
           <button
             onClick={() => navigate(`/pipeline-analysis/${videoId}`)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-info text-primary-foreground hover:bg-info/90 rounded-lg transition-colors"
           >
             <Microscope className="h-4 w-4" />
             Deep Analysis

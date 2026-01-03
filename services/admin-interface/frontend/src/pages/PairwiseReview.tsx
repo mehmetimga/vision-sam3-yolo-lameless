@@ -292,30 +292,30 @@ export default function PairwiseReview() {
 
     return (
       <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-blue-800 mb-2">
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-6">
+          <h2 className="text-2xl font-bold text-primary mb-2">
             Tutorial: Learn to Assess Lameness
           </h2>
-          <p className="text-blue-700">
+          <p className="text-primary/80">
             Step {tutorialStep + 1} of {tutorialExamples.length}
           </p>
           <div className="mt-4">
-            <div className="w-full bg-blue-200 rounded-full h-2">
+            <div className="w-full bg-primary/20 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
+                className="bg-primary h-2 rounded-full transition-all"
                 style={{ width: `${((tutorialStep + 1) / tutorialExamples.length) * 100}%` }}
               />
             </div>
           </div>
         </div>
 
-        <div className="border rounded-lg p-6 bg-white">
-          <h3 className="text-lg font-semibold mb-2">{currentExample.description}</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">{currentExample.description}</h3>
 
           {/* Tutorial videos - actual videos from API */}
           <div className="grid grid-cols-2 gap-4 my-6">
             <div className="space-y-2">
-              <div className="text-center font-medium text-gray-700">Video A</div>
+              <div className="text-center font-medium text-muted-foreground">Video A</div>
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                   src={videosApi.getStreamUrl(currentExample.video_id_1)}
@@ -328,7 +328,7 @@ export default function PairwiseReview() {
               </div>
             </div>
             <div className="space-y-2">
-              <div className="text-center font-medium text-gray-700">Video B</div>
+              <div className="text-center font-medium text-muted-foreground">Video B</div>
               <div className="aspect-video bg-black rounded-lg overflow-hidden">
                 <video
                   src={videosApi.getStreamUrl(currentExample.video_id_2)}
@@ -344,7 +344,7 @@ export default function PairwiseReview() {
 
           {/* 7-Point Scale */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-muted-foreground">
               Select your comparison (1-7 keys work too):
             </label>
             <div className="flex gap-2 flex-wrap justify-center">
@@ -354,8 +354,8 @@ export default function PairwiseReview() {
                   onClick={() => setSelectedValue(option.value)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     selectedValue === option.value
-                      ? `${option.color} text-white ring-2 ring-offset-2 ring-blue-500`
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      ? `${option.color} text-white ring-2 ring-offset-2 ring-primary`
+                      : 'bg-muted hover:bg-accent text-foreground'
                   }`}
                 >
                   <span className="text-xs opacity-60">{idx + 1}</span> {option.label}
@@ -367,11 +367,11 @@ export default function PairwiseReview() {
           {showTutorialFeedback && (
             <div className={`mt-6 p-4 rounded-lg ${
               selectedValue === currentExample.correct_answer
-                ? 'bg-green-100 border border-green-300'
-                : 'bg-yellow-100 border border-yellow-300'
+                ? 'bg-success/10 border border-success/30'
+                : 'bg-warning/10 border border-warning/30'
             }`}>
               <h4 className={`font-semibold ${
-                selectedValue === currentExample.correct_answer ? 'text-green-800' : 'text-yellow-800'
+                selectedValue === currentExample.correct_answer ? 'text-success' : 'text-warning'
               }`}>
                 {selectedValue === currentExample.correct_answer ? '✓ Correct!' : '○ Not quite right'}
               </h4>
@@ -384,14 +384,14 @@ export default function PairwiseReview() {
               <button
                 onClick={handleTutorialAnswer}
                 disabled={selectedValue === null}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50"
               >
                 Check Answer
               </button>
             ) : (
               <button
                 onClick={handleTutorialNext}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+                className="px-6 py-3 bg-success text-white rounded-lg font-medium hover:bg-success/90"
               >
                 {tutorialStep < tutorialExamples.length - 1 ? 'Next Example' : 'Start Real Comparisons'}
               </button>
@@ -399,7 +399,7 @@ export default function PairwiseReview() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center text-sm text-gray-500">
+        <div className="flex justify-between items-center text-sm text-muted-foreground">
           <div>Score: {tutorialScore}/{tutorialStep + (showTutorialFeedback ? 1 : 0)}</div>
           <button
             onClick={() => {
@@ -407,7 +407,7 @@ export default function PairwiseReview() {
               setInTutorial(false)
               loadNextPair()
             }}
-            className="text-blue-600 hover:text-blue-800 underline"
+            className="text-primary hover:text-primary/80 underline"
           >
             Skip Tutorial
           </button>
@@ -490,7 +490,7 @@ export default function PairwiseReview() {
 
       {/* Progress Bar */}
       {stats && (
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-muted rounded-full h-2">
           <div
             className="bg-primary h-2 rounded-full transition-all"
             style={{ width: `${stats.completion_rate * 100}%` }}
@@ -500,7 +500,7 @@ export default function PairwiseReview() {
 
       {/* Ranking Panel */}
       {showRanking && ranking && (
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h3 className="text-lg font-semibold">Lameness Hierarchy (EloSteepness)</h3>
@@ -523,7 +523,7 @@ export default function PairwiseReview() {
             {ranking.ranking?.map((item: any) => (
               <div
                 key={item.video_id}
-                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                className="flex items-center justify-between p-2 bg-muted/50 rounded"
               >
                 <div className="flex items-center gap-3">
                   <span className="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-full text-sm font-bold">
@@ -539,8 +539,8 @@ export default function PairwiseReview() {
                     ±{item.elo_uncertainty?.toFixed(0) || '?'}
                   </div>
                   <div className={`font-medium ${
-                    item.elo_rating > 1550 ? 'text-red-600' :
-                    item.elo_rating < 1450 ? 'text-green-600' : 'text-gray-600'
+                    item.elo_rating > 1550 ? 'text-destructive' :
+                    item.elo_rating < 1450 ? 'text-success' : 'text-muted-foreground'
                   }`}>
                     {item.elo_rating?.toFixed(0) || 1500} Elo
                   </div>
@@ -598,13 +598,13 @@ export default function PairwiseReview() {
           <div className="flex justify-center gap-4">
             <button
               onClick={restartVideos}
-              className="px-6 py-2 border rounded-lg hover:bg-accent"
+              className="px-6 py-2 border border-border rounded-lg hover:bg-accent"
             >
               ↺ Restart
             </button>
             <button
               onClick={togglePlayback}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
             >
               {isPlaying ? '⏸ Pause' : '▶ Play'}
             </button>
@@ -612,7 +612,7 @@ export default function PairwiseReview() {
 
           {/* 7-Point Comparison Scale */}
           <div className="space-y-4">
-            <label className="block text-center font-medium">
+            <label className="block text-center font-medium text-foreground">
               Which cow appears more lame? (Keys 1-7)
             </label>
             <div className="flex gap-2 flex-wrap justify-center">
@@ -622,8 +622,8 @@ export default function PairwiseReview() {
                   onClick={() => setSelectedValue(option.value)}
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-all flex-1 min-w-[120px] max-w-[160px] ${
                     selectedValue === option.value
-                      ? `${option.color} text-white ring-2 ring-offset-2 ring-blue-500 scale-105`
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      ? `${option.color} text-white ring-2 ring-offset-2 ring-primary scale-105`
+                      : 'bg-muted hover:bg-accent text-foreground'
                   }`}
                 >
                   <div className="text-xs opacity-60 mb-1">Press {idx + 1}</div>
@@ -638,14 +638,14 @@ export default function PairwiseReview() {
             <button
               onClick={handleSubmit}
               disabled={selectedValue === null || submitting}
-              className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-3 bg-success text-white rounded-lg font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Submitting...' : 'Submit & Next Pair (Enter)'}
             </button>
           </div>
 
           {/* Lameness Indicators Guide */}
-          <div className="bg-gray-50 rounded-lg p-4 text-sm">
+          <div className="bg-muted/50 rounded-lg p-4 text-sm">
             <h4 className="font-semibold mb-2">What to Look For:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex items-start gap-2">
@@ -681,9 +681,9 @@ export default function PairwiseReview() {
 
           {/* Keyboard shortcuts */}
           <div className="text-center text-xs text-muted-foreground">
-            Shortcuts: <kbd className="px-1 bg-gray-100 rounded">1-7</kbd> select scale,{' '}
-            <kbd className="px-1 bg-gray-100 rounded">Space</kbd> play/pause,{' '}
-            <kbd className="px-1 bg-gray-100 rounded">Enter</kbd> submit
+            Shortcuts: <kbd className="px-1 bg-muted rounded">1-7</kbd> select scale,{' '}
+            <kbd className="px-1 bg-muted rounded">Space</kbd> play/pause,{' '}
+            <kbd className="px-1 bg-muted rounded">Enter</kbd> submit
           </div>
         </>
       )}
@@ -691,23 +691,23 @@ export default function PairwiseReview() {
       {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Share Comparison</h3>
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">Share Comparison</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Share URL</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Share URL</label>
                 <input
                   type="text"
                   value={shareUrl}
                   readOnly
-                  className="w-full p-2 border rounded-lg text-sm"
+                  className="w-full p-2 border border-border rounded-lg text-sm bg-background text-foreground"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
               </div>
               <div className="flex justify-center">
-                <div className="p-4 bg-gray-100 rounded-lg">
+                <div className="p-4 bg-muted rounded-lg">
                   {/* QR Code placeholder - would use a QR library in production */}
-                  <div className="w-32 h-32 bg-white border-2 border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500">
+                  <div className="w-32 h-32 bg-background border-2 border-dashed border-border flex items-center justify-center text-xs text-muted-foreground">
                     QR Code
                   </div>
                 </div>
@@ -718,13 +718,13 @@ export default function PairwiseReview() {
                     navigator.clipboard.writeText(shareUrl)
                     alert('URL copied!')
                   }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg"
                 >
                   Copy URL
                 </button>
                 <button
                   onClick={() => setShowShareModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-accent"
                 >
                   Close
                 </button>

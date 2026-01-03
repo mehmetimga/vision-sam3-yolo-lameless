@@ -143,9 +143,9 @@ export default function MLConfiguration() {
             type="checkbox"
             checked={value}
             onChange={(e) => handleParamChange(tab, param, e.target.checked)}
-            className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+            className="w-5 h-5 rounded border-border accent-primary focus:ring-primary"
           />
-          <span className="text-sm">{value ? 'Enabled' : 'Disabled'}</span>
+          <span className="text-sm text-foreground">{value ? 'Enabled' : 'Disabled'}</span>
         </label>
       )
     }
@@ -162,7 +162,7 @@ export default function MLConfiguration() {
             step={step}
             value={value}
             onChange={(e) => handleParamChange(tab, param, parseFloat(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
           />
           <div className="flex justify-between items-center">
             <input
@@ -172,7 +172,7 @@ export default function MLConfiguration() {
               step={step}
               value={value}
               onChange={(e) => handleParamChange(tab, param, parseFloat(e.target.value) || min)}
-              className="w-24 px-2 py-1 border rounded text-sm"
+              className="w-24 px-2 py-1 border border-border rounded text-sm bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
             />
             <span className="text-xs text-muted-foreground">
               Range: {min} - {max}
@@ -187,7 +187,7 @@ export default function MLConfiguration() {
         type="number"
         value={value as number}
         onChange={(e) => handleParamChange(tab, param, parseFloat(e.target.value) || 0)}
-        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
       />
     )
   }
@@ -197,11 +197,11 @@ export default function MLConfiguration() {
     if (!desc) return null
 
     return (
-      <div key={param} className="border rounded-lg p-4 hover:border-primary/50 transition-colors">
+      <div key={param} className="border border-border bg-card rounded-lg p-4 hover:border-primary/50 transition-colors">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h4 className="font-medium">{desc.name}</h4>
-            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+            <h4 className="font-medium text-foreground">{desc.name}</h4>
+            <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
               {desc.category}
             </span>
           </div>
@@ -268,8 +268,8 @@ export default function MLConfiguration() {
     return (
       <div className="space-y-6">
         {/* Weight Distribution */}
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Model Weight Distribution</h3>
+        <div className="border border-border bg-card rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Model Weight Distribution</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Adjust how much each model contributes to the final ensemble prediction.
             Weights are automatically normalized.
@@ -300,8 +300,8 @@ export default function MLConfiguration() {
           <div className="grid md:grid-cols-3 gap-4">
             {/* CatBoost weight */}
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-500 rounded" />
+              <label className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <div className="w-3 h-3 bg-info rounded" />
                 CatBoost Weight
               </label>
               <input
@@ -311,17 +311,17 @@ export default function MLConfiguration() {
                 step="0.01"
                 value={catboost_weight}
                 onChange={(e) => handleParamChange('ensemble', 'catboost_weight', parseFloat(e.target.value))}
-                className="w-full accent-blue-500"
+                className="w-full accent-info"
               />
-              <div className="text-center font-mono text-sm">
+              <div className="text-center font-mono text-sm text-foreground">
                 {(catboost_weight * 100).toFixed(0)}%
               </div>
             </div>
 
             {/* XGBoost weight */}
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded" />
+              <label className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <div className="w-3 h-3 bg-success rounded" />
                 XGBoost Weight
               </label>
               <input
@@ -331,17 +331,17 @@ export default function MLConfiguration() {
                 step="0.01"
                 value={xgboost_weight}
                 onChange={(e) => handleParamChange('ensemble', 'xgboost_weight', parseFloat(e.target.value))}
-                className="w-full accent-green-500"
+                className="w-full accent-success"
               />
-              <div className="text-center font-mono text-sm">
+              <div className="text-center font-mono text-sm text-foreground">
                 {(xgboost_weight * 100).toFixed(0)}%
               </div>
             </div>
 
             {/* LightGBM weight */}
             <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded" />
+              <label className="text-sm font-medium flex items-center gap-2 text-foreground">
+                <div className="w-3 h-3 bg-primary rounded" />
                 LightGBM Weight
               </label>
               <input
@@ -351,9 +351,9 @@ export default function MLConfiguration() {
                 step="0.01"
                 value={lightgbm_weight}
                 onChange={(e) => handleParamChange('ensemble', 'lightgbm_weight', parseFloat(e.target.value))}
-                className="w-full accent-purple-500"
+                className="w-full accent-primary"
               />
-              <div className="text-center font-mono text-sm">
+              <div className="text-center font-mono text-sm text-foreground">
                 {(lightgbm_weight * 100).toFixed(0)}%
               </div>
             </div>
@@ -361,14 +361,14 @@ export default function MLConfiguration() {
         </div>
 
         {/* Voting Method */}
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">Voting Method</h3>
+        <div className="border border-border bg-card rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Voting Method</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Choose how model predictions are combined.
           </p>
           <div className="flex gap-4">
             <label className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${
-              voting_method === 'soft' ? 'border-primary bg-primary/5' : 'hover:border-gray-400'
+              voting_method === 'soft' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground'
             }`}>
               <input
                 type="radio"
@@ -378,13 +378,13 @@ export default function MLConfiguration() {
                 onChange={() => handleParamChange('ensemble', 'voting_method', 'soft')}
                 className="sr-only"
               />
-              <div className="font-medium mb-1">Soft Voting</div>
+              <div className="font-medium mb-1 text-foreground">Soft Voting</div>
               <div className="text-sm text-muted-foreground">
                 Weighted average of predicted probabilities. Best for calibrated models.
               </div>
             </label>
             <label className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${
-              voting_method === 'hard' ? 'border-primary bg-primary/5' : 'hover:border-gray-400'
+              voting_method === 'hard' ? 'border-primary bg-primary/10' : 'border-border hover:border-muted-foreground'
             }`}>
               <input
                 type="radio"
@@ -394,7 +394,7 @@ export default function MLConfiguration() {
                 onChange={() => handleParamChange('ensemble', 'voting_method', 'hard')}
                 className="sr-only"
               />
-              <div className="font-medium mb-1">Hard Voting</div>
+              <div className="font-medium mb-1 text-foreground">Hard Voting</div>
               <div className="text-sm text-muted-foreground">
                 Majority voting of predicted classes. More robust to outliers.
               </div>
@@ -403,8 +403,8 @@ export default function MLConfiguration() {
         </div>
 
         {/* Classification Threshold */}
-        <div className="border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2">Classification Threshold</h3>
+        <div className="border border-border bg-card rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-2 text-foreground">Classification Threshold</h3>
           <p className="text-sm text-muted-foreground mb-4">
             Probability threshold for classifying as "Lame". Lower = more sensitive (catches more),
             Higher = more specific (fewer false positives).
@@ -417,16 +417,16 @@ export default function MLConfiguration() {
               step="0.01"
               value={threshold}
               onChange={(e) => handleParamChange('ensemble', 'threshold', parseFloat(e.target.value))}
-              className="w-full"
+              className="w-full accent-primary"
             />
             <div className="flex justify-between text-sm">
-              <span className="text-green-600">More Sensitive</span>
-              <span className="font-mono font-medium">{threshold}</span>
-              <span className="text-blue-600">More Specific</span>
+              <span className="text-success">More Sensitive</span>
+              <span className="font-mono font-medium text-foreground">{threshold}</span>
+              <span className="text-info">More Specific</span>
             </div>
-            <div className="h-2 bg-gradient-to-r from-green-500 via-yellow-500 to-blue-500 rounded-full relative">
+            <div className="h-2 bg-gradient-to-r from-success via-warning to-info rounded-full relative">
               <div
-                className="absolute w-4 h-4 bg-white border-2 border-gray-800 rounded-full -top-1"
+                className="absolute w-4 h-4 bg-card border-2 border-foreground rounded-full -top-1 shadow-md"
                 style={{ left: `calc(${threshold * 100}% - 8px)` }}
               />
             </div>
@@ -474,14 +474,14 @@ export default function MLConfiguration() {
         <div className="flex gap-2">
           <button
             onClick={handleStartTraining}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+            className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/90 font-medium transition-colors"
           >
             Start Training
           </button>
           <button
             onClick={handleReset}
             disabled={saving}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 text-foreground transition-colors"
           >
             Reset to Defaults
           </button>
@@ -491,7 +491,7 @@ export default function MLConfiguration() {
       {/* Message */}
       {message && (
         <div className={`p-4 rounded-lg ${
-          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          message.type === 'success' ? 'bg-success/10 text-success border border-success/30' : 'bg-destructive/10 text-destructive border border-destructive/30'
         }`}>
           {message.text}
         </div>
@@ -503,10 +503,10 @@ export default function MLConfiguration() {
           {['catboost', 'xgboost', 'lightgbm', 'ensemble'].map((model) => {
             const status = modelsStatus.models?.[model]
             return (
-              <div key={model} className="border rounded-lg p-4">
+              <div key={model} className="border border-border bg-card rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${status?.trained ? 'bg-green-500' : 'bg-gray-300'}`} />
-                  <span className="font-medium capitalize">{model}</span>
+                  <div className={`w-3 h-3 rounded-full ${status?.trained ? 'bg-success' : 'bg-muted-foreground/30'}`} />
+                  <span className="font-medium capitalize text-foreground">{model}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {status?.trained ? (
@@ -531,7 +531,7 @@ export default function MLConfiguration() {
       )}
 
       {/* Tabs */}
-      <div className="border-b">
+      <div className="border-b border-border">
         <div className="flex gap-1">
           {[
             { id: 'catboost', label: 'CatBoost', icon: '🐱' },
@@ -566,7 +566,7 @@ export default function MLConfiguration() {
       </div>
 
       {/* Save Button */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-end gap-3 pt-4 border-t border-border">
         {hasChanges && (
           <span className="text-sm text-amber-600 self-center">Unsaved changes</span>
         )}
@@ -581,26 +581,26 @@ export default function MLConfiguration() {
 
       {/* Training Status */}
       {modelsStatus?.training_status && (
-        <div className="border rounded-lg p-6 bg-gray-50">
-          <h3 className="font-semibold mb-3">Last Training</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="font-semibold mb-3 text-foreground">Last Training</h3>
           <div className="grid grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Status:</span>
               <span className={`ml-2 font-medium ${
-                modelsStatus.training_status.status === 'completed' ? 'text-green-600' :
-                modelsStatus.training_status.status === 'training' ? 'text-blue-600' : 'text-gray-600'
+                modelsStatus.training_status.status === 'completed' ? 'text-success' :
+                modelsStatus.training_status.status === 'training' ? 'text-info' : 'text-muted-foreground'
               }`}>
                 {modelsStatus.training_status.status}
               </span>
             </div>
             <div>
               <span className="text-muted-foreground">Samples:</span>
-              <span className="ml-2 font-medium">{modelsStatus.training_status.samples_used}</span>
+              <span className="ml-2 font-medium text-foreground">{modelsStatus.training_status.samples_used}</span>
             </div>
             {modelsStatus.training_status.last_trained && (
               <div>
                 <span className="text-muted-foreground">Date:</span>
-                <span className="ml-2 font-medium">
+                <span className="ml-2 font-medium text-foreground">
                   {new Date(modelsStatus.training_status.last_trained).toLocaleString()}
                 </span>
               </div>
@@ -608,7 +608,7 @@ export default function MLConfiguration() {
             {modelsStatus.training_status.metrics?.ensemble && (
               <div>
                 <span className="text-muted-foreground">Accuracy:</span>
-                <span className="ml-2 font-medium">
+                <span className="ml-2 font-medium text-foreground">
                   {(modelsStatus.training_status.metrics.ensemble.train_accuracy * 100).toFixed(1)}%
                 </span>
               </div>

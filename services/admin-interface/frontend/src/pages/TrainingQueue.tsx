@@ -77,28 +77,28 @@ export default function TrainingQueue() {
       {/* Training Stats */}
       {stats && (
         <div className="grid gap-4 md:grid-cols-5 mb-6">
-          <div className="border rounded-lg p-4">
+          <div className="border border-border rounded-lg p-4 bg-card">
             <p className="text-sm text-muted-foreground">Total Labels</p>
-            <p className="text-2xl font-bold">{stats.total_labels}</p>
+            <p className="text-2xl font-bold text-foreground">{stats.total_labels}</p>
           </div>
-          <div className="border rounded-lg p-4 bg-green-50">
-            <p className="text-sm text-green-700">Sound</p>
-            <p className="text-2xl font-bold text-green-800">{stats.sound_count}</p>
+          <div className="border border-success/30 rounded-lg p-4 bg-success/10">
+            <p className="text-sm text-success">Sound</p>
+            <p className="text-2xl font-bold text-success">{stats.sound_count}</p>
           </div>
-          <div className="border rounded-lg p-4 bg-red-50">
-            <p className="text-sm text-red-700">Lame</p>
-            <p className="text-2xl font-bold text-red-800">{stats.lame_count}</p>
+          <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/10">
+            <p className="text-sm text-destructive">Lame</p>
+            <p className="text-2xl font-bold text-destructive">{stats.lame_count}</p>
           </div>
-          <div className="border rounded-lg p-4">
+          <div className="border border-border rounded-lg p-4 bg-card">
             <p className="text-sm text-muted-foreground">Balance</p>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold text-foreground">
               {stats.balance_ratio ? stats.balance_ratio.toFixed(2) : 'N/A'}
             </p>
           </div>
-          <div className="border rounded-lg p-4">
+          <div className="border border-border rounded-lg p-4 bg-card">
             <p className="text-sm text-muted-foreground">Status</p>
             <p className={`text-2xl font-bold ${
-              stats.ready_for_training ? 'text-green-600' : 'text-yellow-600'
+              stats.ready_for_training ? 'text-success' : 'text-warning'
             }`}>
               {stats.ready_for_training ? 'Ready' : 'Need Data'}
             </p>
@@ -108,16 +108,16 @@ export default function TrainingQueue() {
 
       {/* Training Status & Controls */}
       <div className="grid gap-6 md:grid-cols-2 mb-6">
-        <div className="border rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-4">Training Status</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Training Status</h3>
           
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status:</span>
               <span className={`font-medium ${
-                status?.status === 'completed' ? 'text-green-600' :
-                status?.status === 'training' ? 'text-blue-600' :
-                status?.status === 'failed' ? 'text-red-600' :
+                status?.status === 'completed' ? 'text-success' :
+                status?.status === 'training' ? 'text-primary' :
+                status?.status === 'failed' ? 'text-destructive' :
                 'text-muted-foreground'
               }`}>
                 {status?.status || 'idle'}
@@ -155,8 +155,8 @@ export default function TrainingQueue() {
         </div>
 
         {/* Trained Models */}
-        <div className="border rounded-lg p-6">
-          <h3 className="text-xl font-semibold mb-4">Trained Models</h3>
+        <div className="border border-border rounded-lg p-6 bg-card">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Trained Models</h3>
           
           {models.length === 0 ? (
             <p className="text-muted-foreground">No models trained yet</p>
@@ -175,8 +175,8 @@ export default function TrainingQueue() {
 
           {/* Model Metrics */}
           {status?.metrics && Object.keys(status.metrics).length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="font-medium mb-2">Model Performance</h4>
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="font-medium mb-2 text-foreground">Model Performance</h4>
               <div className="space-y-1 text-sm">
                 {Object.entries(status.metrics).map(([model, metrics]: [string, any]) => (
                   !metrics.error && (
@@ -198,12 +198,12 @@ export default function TrainingQueue() {
       </div>
 
       {/* Training Info */}
-      <div className="border rounded-lg p-4 mb-6 bg-amber-50 border-amber-200">
+      <div className="border rounded-lg p-4 mb-6 bg-warning/10 border-warning/30">
         <div className="flex items-start gap-3">
-          <div className="text-amber-600 text-xl">📋</div>
+          <div className="text-warning text-xl">📋</div>
           <div>
-            <h4 className="font-medium text-amber-800">Manual Training</h4>
-            <p className="text-sm text-amber-700">
+            <h4 className="font-medium text-warning">Manual Training</h4>
+            <p className="text-sm text-warning/80">
               Click "Start Training" when you're ready to train models. You need at least 10 labeled videos 
               with both Sound and Lame samples. Training uses CatBoost, XGBoost, LightGBM, and creates an ensemble model.
             </p>
@@ -212,14 +212,14 @@ export default function TrainingQueue() {
       </div>
 
       {/* Videos Needing Labels */}
-      <div className="border rounded-lg">
-        <div className="p-4 border-b">
-          <h3 className="font-semibold">Videos Needing Labels ({queue.length})</h3>
+      <div className="border border-border rounded-lg bg-card">
+        <div className="p-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">Videos Needing Labels ({queue.length})</h3>
           <p className="text-sm text-muted-foreground">
             Prioritized by prediction uncertainty (most uncertain first)
           </p>
         </div>
-        <div className="divide-y max-h-96 overflow-y-auto">
+        <div className="divide-y divide-border max-h-96 overflow-y-auto">
           {queue.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               No videos in queue. Upload and analyze videos first.
@@ -240,7 +240,7 @@ export default function TrainingQueue() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 text-xs rounded ${
-                      video.uncertainty < 0.2 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'
+                      video.uncertainty < 0.2 ? 'bg-warning/20 text-warning' : 'bg-muted text-muted-foreground'
                     }`}>
                       {video.uncertainty < 0.2 ? 'Uncertain' : 'Confident'}
                     </span>

@@ -525,12 +525,12 @@ export default function SimilarityMap() {
         </div>
         <div className="flex items-center gap-4">
           {/* 2D/3D Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-muted rounded-lg p-1">
             <button
               onClick={() => setViewMode('2d')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 viewMode === '2d'
-                  ? 'bg-white shadow-sm text-primary'
+                  ? 'bg-card shadow-sm text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -540,7 +540,7 @@ export default function SimilarityMap() {
               onClick={() => setViewMode('3d')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                 viewMode === '3d'
-                  ? 'bg-white shadow-sm text-primary'
+                  ? 'bg-card shadow-sm text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -554,7 +554,7 @@ export default function SimilarityMap() {
             <select
               value={colorBy}
               onChange={(e) => setColorBy(e.target.value as any)}
-              className="px-3 py-2 border rounded-lg"
+              className="px-3 py-2 border border-border rounded-lg bg-background text-foreground"
             >
               <option value="label">Label</option>
               <option value="cluster">Cluster</option>
@@ -587,24 +587,24 @@ export default function SimilarityMap() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="border rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold">{points.length}</div>
+        <div className="border border-border rounded-lg p-4 text-center bg-card">
+          <div className="text-3xl font-bold text-foreground">{points.length}</div>
           <div className="text-sm text-muted-foreground">Total Videos</div>
         </div>
-        <div className="border rounded-lg p-4 text-center bg-green-50">
-          <div className="text-3xl font-bold text-green-600">
+        <div className="border border-success/30 rounded-lg p-4 text-center bg-success/10">
+          <div className="text-3xl font-bold text-success">
             {points.filter(p => p.label === 0).length}
           </div>
-          <div className="text-sm text-green-600">Labeled Healthy</div>
+          <div className="text-sm text-success">Labeled Healthy</div>
         </div>
-        <div className="border rounded-lg p-4 text-center bg-red-50">
-          <div className="text-3xl font-bold text-red-600">
+        <div className="border border-destructive/30 rounded-lg p-4 text-center bg-destructive/10">
+          <div className="text-3xl font-bold text-destructive">
             {points.filter(p => p.label === 1).length}
           </div>
-          <div className="text-sm text-red-600">Labeled Lame</div>
+          <div className="text-sm text-destructive">Labeled Lame</div>
         </div>
-        <div className="border rounded-lg p-4 text-center">
-          <div className="text-3xl font-bold text-gray-600">
+        <div className="border border-border rounded-lg p-4 text-center bg-card">
+          <div className="text-3xl font-bold text-muted-foreground">
             {new Set(points.map(p => p.cluster)).size}
           </div>
           <div className="text-sm text-muted-foreground">Clusters</div>
@@ -642,22 +642,22 @@ export default function SimilarityMap() {
       {/* Canvas Container */}
       <div
         ref={isFullscreen ? fullscreenContainerRef : containerRef}
-        className={`border rounded-lg overflow-hidden bg-gray-50 relative ${
+        className={`border border-border rounded-lg overflow-hidden bg-muted/30 relative ${
           isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : ''
         }`}
         style={{ height: isFullscreen ? '100vh' : '500px' }}
       >
         {/* Fullscreen header bar */}
         {isFullscreen && (
-          <div className="absolute top-0 left-0 right-0 z-10 bg-white/95 backdrop-blur border-b px-4 py-3 flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 z-10 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h3 className="font-semibold">{viewMode === '2d' ? '2D' : '3D'} Similarity Map</h3>
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <h3 className="font-semibold text-foreground">{viewMode === '2d' ? '2D' : '3D'} Similarity Map</h3>
+              <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('2d')}
                   className={`px-3 py-1 rounded text-sm font-medium transition-all ${
                     viewMode === '2d'
-                      ? 'bg-white shadow-sm text-primary'
+                      ? 'bg-card shadow-sm text-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -667,7 +667,7 @@ export default function SimilarityMap() {
                   onClick={() => setViewMode('3d')}
                   className={`px-3 py-1 rounded text-sm font-medium transition-all ${
                     viewMode === '3d'
-                      ? 'bg-white shadow-sm text-primary'
+                      ? 'bg-card shadow-sm text-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -677,7 +677,7 @@ export default function SimilarityMap() {
               <select
                 value={colorBy}
                 onChange={(e) => setColorBy(e.target.value as any)}
-                className="px-3 py-1.5 border rounded-lg text-sm"
+                className="px-3 py-1.5 border border-border rounded-lg text-sm bg-background text-foreground"
               >
                 <option value="label">Color: Label</option>
                 <option value="cluster">Color: Cluster</option>
@@ -686,7 +686,7 @@ export default function SimilarityMap() {
               {viewMode === '2d' && (
                 <button
                   onClick={resetView}
-                  className="px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-100"
+                  className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-accent text-foreground"
                 >
                   Reset View
                 </button>
@@ -694,7 +694,7 @@ export default function SimilarityMap() {
             </div>
             <button
               onClick={toggleFullscreen}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-accent rounded-lg text-foreground"
               title="Exit Fullscreen (ESC)"
             >
               <X className="w-5 h-5" />
@@ -723,7 +723,7 @@ export default function SimilarityMap() {
             {/* Fullscreen toggle button */}
             <button
               onClick={toggleFullscreen}
-              className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg shadow-md transition-all"
+              className="absolute top-4 right-4 p-2 bg-card/90 hover:bg-card rounded-lg shadow-md transition-all text-foreground"
               title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Enter Fullscreen'}
             >
               {isFullscreen ? (
@@ -734,12 +734,12 @@ export default function SimilarityMap() {
             </button>
 
             {/* Zoom indicator */}
-            <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded text-sm">
+            <div className="absolute bottom-4 right-4 bg-card/80 px-3 py-1 rounded text-sm text-foreground">
               Zoom: {(zoom * 100).toFixed(0)}%
             </div>
 
             {/* Instructions */}
-            <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
+            <div className="absolute bottom-4 left-4 bg-card/80 px-3 py-1 rounded text-xs text-muted-foreground">
               Scroll to zoom • Drag to pan • Click point to select {isFullscreen && '• ESC to exit'}
             </div>
           </>
@@ -771,7 +771,7 @@ export default function SimilarityMap() {
             {!isFullscreen && (
               <button
                 onClick={toggleFullscreen}
-                className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white rounded-lg shadow-md transition-all"
+                className="absolute top-4 right-4 p-2 bg-card/90 hover:bg-card rounded-lg shadow-md transition-all text-foreground"
                 title="Enter Fullscreen"
               >
                 <Maximize2 className="w-5 h-5" />
@@ -779,12 +779,12 @@ export default function SimilarityMap() {
             )}
 
             {/* 3D Instructions */}
-            <div className="absolute bottom-4 left-4 bg-white/80 px-3 py-1 rounded text-xs text-muted-foreground">
+            <div className="absolute bottom-4 left-4 bg-card/80 px-3 py-1 rounded text-xs text-muted-foreground">
               Drag to rotate • Scroll to zoom • Right-click to pan • Click point to select {isFullscreen && '• ESC to exit'}
             </div>
 
             {/* 3D Legend */}
-            <div className={`absolute ${isFullscreen ? 'top-20' : 'top-4'} left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-xs`}>
+            <div className={`absolute ${isFullscreen ? 'top-20' : 'top-4'} left-4 bg-card/90 backdrop-blur px-3 py-2 rounded-lg text-xs text-foreground`}>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-3 h-0.5 bg-red-500"></div>
                 <span>X axis</span>
@@ -805,7 +805,7 @@ export default function SimilarityMap() {
       {/* Hover tooltip - only for 2D mode */}
       {viewMode === '2d' && hoveredPoint && (
         <div
-          className="fixed z-50 bg-white rounded-lg shadow-xl border p-3 pointer-events-none"
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-xl p-3 pointer-events-none"
           style={{
             left: hoveredPoint.screenX + 15,
             top: hoveredPoint.screenY - 50
@@ -827,12 +827,12 @@ export default function SimilarityMap() {
       {/* Selected video modal */}
       {selectedPoint && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 overflow-hidden">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-semibold">Video Details</h3>
+          <div className="bg-card border border-border rounded-lg max-w-2xl w-full mx-4 overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-semibold text-foreground">Video Details</h3>
               <button
                 onClick={() => setSelectedPoint(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 ✕
               </button>
@@ -845,20 +845,20 @@ export default function SimilarityMap() {
                 autoPlay
               />
               <div className="mt-4 grid grid-cols-3 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded">
-                  <div className="text-lg font-bold">
+                <div className="text-center p-3 bg-muted rounded">
+                  <div className="text-lg font-bold text-foreground">
                     {selectedPoint.label === 0 ? '✓ Healthy' :
                      selectedPoint.label === 1 ? '✗ Lame' : '? Unknown'}
                   </div>
                   <div className="text-xs text-muted-foreground">Label</div>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded">
-                  <div className="text-lg font-bold">Cluster {selectedPoint.cluster}</div>
+                <div className="text-center p-3 bg-muted rounded">
+                  <div className="text-lg font-bold text-foreground">Cluster {selectedPoint.cluster}</div>
                   <div className="text-xs text-muted-foreground">Cluster ID</div>
                 </div>
                 {selectedPoint.elo_rating && (
-                  <div className="text-center p-3 bg-gray-50 rounded">
-                    <div className="text-lg font-bold">{selectedPoint.elo_rating}</div>
+                  <div className="text-center p-3 bg-muted rounded">
+                    <div className="text-lg font-bold text-foreground">{selectedPoint.elo_rating}</div>
                     <div className="text-xs text-muted-foreground">Elo Rating</div>
                   </div>
                 )}
@@ -893,13 +893,13 @@ export default function SimilarityMap() {
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => window.open(`/analysis/${selectedPoint.video_id}`, '_blank')}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                 >
                   Full Analysis
                 </button>
                 <button
                   onClick={() => setSelectedPoint(null)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground hover:bg-accent"
                 >
                   Close
                 </button>

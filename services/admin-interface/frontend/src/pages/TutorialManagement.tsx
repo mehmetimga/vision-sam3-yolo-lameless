@@ -154,10 +154,10 @@ export default function TutorialManagement() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-700'
-      case 'medium': return 'bg-yellow-100 text-yellow-700'
-      case 'hard': return 'bg-red-100 text-red-700'
-      default: return 'bg-gray-100 text-gray-700'
+      case 'easy': return 'bg-success/20 text-success'
+      case 'medium': return 'bg-warning/20 text-warning'
+      case 'hard': return 'bg-destructive/20 text-destructive'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
@@ -242,43 +242,43 @@ export default function TutorialManagement() {
       </div>
 
       {/* Tasks Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border border-border rounded-lg overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Order</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Type</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Videos</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Correct Answer</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Difficulty</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Description</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Order</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Type</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Videos</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Correct Answer</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Difficulty</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Description</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border">
             {tasks.map((task) => (
-              <tr key={task.id} className="hover:bg-gray-50">
+              <tr key={task.id} className="hover:bg-accent/50 transition-colors">
                 <td className="px-4 py-3 text-sm">
                   {task.is_tutorial ? task.tutorial_order || '-' : '-'}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    task.is_tutorial ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                    task.is_tutorial ? 'bg-info/20 text-info' : 'bg-primary/20 text-primary'
                   }`}>
                     {task.is_tutorial ? 'Tutorial' : 'Validation'}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <div className="w-24 h-14 bg-gray-100 rounded overflow-hidden">
+                  <div className="flex gap-2 items-center">
+                    <div className="w-24 h-14 bg-muted rounded overflow-hidden">
                       <video
                         src={videosApi.getStreamUrl(task.video_id_1)}
                         className="w-full h-full object-cover"
                         muted
                       />
                     </div>
-                    <span className="text-gray-400">vs</span>
-                    <div className="w-24 h-14 bg-gray-100 rounded overflow-hidden">
+                    <span className="text-muted-foreground">vs</span>
+                    <div className="w-24 h-14 bg-muted rounded overflow-hidden">
                       <video
                         src={videosApi.getStreamUrl(task.video_id_2)}
                         className="w-full h-full object-cover"
@@ -287,7 +287,7 @@ export default function TutorialManagement() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3 text-sm text-foreground">
                   {getCorrectAnswerLabel(task.correct_winner, task.correct_degree || 2)}
                 </td>
                 <td className="px-4 py-3">
@@ -295,20 +295,20 @@ export default function TutorialManagement() {
                     {task.difficulty}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+                <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                   {task.description || '-'}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEditModal(task)}
-                      className="px-3 py-1 text-sm border rounded hover:bg-accent"
+                      className="px-3 py-1 text-sm border border-border rounded hover:bg-accent transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDelete(task.id)}
-                      className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50"
+                      className="px-3 py-1 text-sm text-destructive border border-destructive/30 rounded hover:bg-destructive/10 transition-colors"
                     >
                       Delete
                     </button>
@@ -330,31 +330,33 @@ export default function TutorialManagement() {
       {/* Create/Edit Modal */}
       {(showCreateModal || showEditModal) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
+            <h3 className="text-lg font-semibold mb-4 text-foreground">
               {showCreateModal ? 'Create New Task' : 'Edit Task'}
             </h3>
 
             <div className="space-y-4">
               {/* Task Type */}
               <div>
-                <label className="block text-sm font-medium mb-1">Task Type</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Task Type</label>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       checked={formData.is_tutorial}
                       onChange={() => setFormData({ ...formData, is_tutorial: true })}
+                      className="accent-primary"
                     />
-                    <span>Tutorial (shown to new raters)</span>
+                    <span className="text-foreground">Tutorial (shown to new raters)</span>
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       checked={!formData.is_tutorial}
                       onChange={() => setFormData({ ...formData, is_tutorial: false })}
+                      className="accent-primary"
                     />
-                    <span>Validation (hidden gold task)</span>
+                    <span className="text-foreground">Validation (hidden gold task)</span>
                   </label>
                 </div>
               </div>
@@ -363,30 +365,30 @@ export default function TutorialManagement() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Video A Drop Zone */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     Video A (Cow A)
                     {formData.video_id_1 && (
                       <button
                         onClick={() => setFormData({ ...formData, video_id_1: '' })}
-                        className="ml-2 text-xs text-red-500 hover:text-red-700"
+                        className="ml-2 text-xs text-destructive hover:text-destructive/80"
                       >
                         Clear
                       </button>
                     )}
                   </label>
                   <div
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-blue-500', 'bg-blue-50') }}
-                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50') }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-info', 'bg-info/10') }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-info', 'bg-info/10') }}
                     onDrop={(e) => {
                       e.preventDefault()
-                      e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50')
+                      e.currentTarget.classList.remove('border-info', 'bg-info/10')
                       const videoId = e.dataTransfer.getData('video_id')
                       if (videoId && videoId !== formData.video_id_2) {
                         setFormData({ ...formData, video_id_1: videoId })
                       }
                     }}
                     className={`border-2 border-dashed rounded-lg overflow-hidden transition-all ${
-                      formData.video_id_1 ? 'border-blue-400 bg-blue-50' : 'border-gray-300'
+                      formData.video_id_1 ? 'border-info bg-info/10' : 'border-border'
                     }`}
                   >
                     {formData.video_id_1 ? (
@@ -397,12 +399,12 @@ export default function TutorialManagement() {
                           controls
                           muted
                         />
-                        <div className="absolute top-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded">
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-info text-white text-xs font-bold rounded">
                           A
                         </div>
                       </div>
                     ) : (
-                      <div className="aspect-video flex flex-col items-center justify-center text-gray-400">
+                      <div className="aspect-video flex flex-col items-center justify-center text-muted-foreground bg-muted/30">
                         <span className="text-3xl mb-2">📥</span>
                         <span className="text-sm">Drop Video A here</span>
                       </div>
@@ -412,30 +414,30 @@ export default function TutorialManagement() {
 
                 {/* Video B Drop Zone */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-sm font-medium mb-2 text-foreground">
                     Video B (Cow B)
                     {formData.video_id_2 && (
                       <button
                         onClick={() => setFormData({ ...formData, video_id_2: '' })}
-                        className="ml-2 text-xs text-red-500 hover:text-red-700"
+                        className="ml-2 text-xs text-destructive hover:text-destructive/80"
                       >
                         Clear
                       </button>
                     )}
                   </label>
                   <div
-                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-green-500', 'bg-green-50') }}
-                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-green-500', 'bg-green-50') }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-success', 'bg-success/10') }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('border-success', 'bg-success/10') }}
                     onDrop={(e) => {
                       e.preventDefault()
-                      e.currentTarget.classList.remove('border-green-500', 'bg-green-50')
+                      e.currentTarget.classList.remove('border-success', 'bg-success/10')
                       const videoId = e.dataTransfer.getData('video_id')
                       if (videoId && videoId !== formData.video_id_1) {
                         setFormData({ ...formData, video_id_2: videoId })
                       }
                     }}
                     className={`border-2 border-dashed rounded-lg overflow-hidden transition-all ${
-                      formData.video_id_2 ? 'border-green-400 bg-green-50' : 'border-gray-300'
+                      formData.video_id_2 ? 'border-success bg-success/10' : 'border-border'
                     }`}
                   >
                     {formData.video_id_2 ? (
@@ -446,12 +448,12 @@ export default function TutorialManagement() {
                           controls
                           muted
                         />
-                        <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-success text-white text-xs font-bold rounded">
                           B
                         </div>
                       </div>
                     ) : (
-                      <div className="aspect-video flex flex-col items-center justify-center text-gray-400">
+                      <div className="aspect-video flex flex-col items-center justify-center text-muted-foreground bg-muted/30">
                         <span className="text-3xl mb-2">📥</span>
                         <span className="text-sm">Drop Video B here</span>
                       </div>
@@ -462,9 +464,9 @@ export default function TutorialManagement() {
 
               {/* Available Videos - Draggable Grid */}
               {videos.length > 0 && (
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-2 text-sm">Available Videos ({videos.length}) - Drag to drop zones above</h4>
-                  <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg">
+                <div className="border-t border-border pt-4">
+                  <h4 className="font-medium mb-2 text-sm text-foreground">Available Videos ({videos.length}) - Drag to drop zones above</h4>
+                  <div className="grid grid-cols-5 gap-2 max-h-48 overflow-y-auto p-2 bg-muted/30 rounded-lg">
                     {videos.map((video) => {
                       const isSelectedA = formData.video_id_1 === video.id
                       const isSelectedB = formData.video_id_2 === video.id
@@ -477,28 +479,28 @@ export default function TutorialManagement() {
                             e.dataTransfer.effectAllowed = 'copy'
                           }}
                           className={`relative border-2 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
-                            isSelectedA ? 'border-blue-500 ring-2 ring-blue-200' :
-                            isSelectedB ? 'border-green-500 ring-2 ring-green-200' :
-                            'border-gray-200 hover:border-gray-400 hover:shadow-md bg-white'
+                            isSelectedA ? 'border-info ring-2 ring-info/30' :
+                            isSelectedB ? 'border-success ring-2 ring-success/30' :
+                            'border-border hover:border-muted-foreground hover:shadow-md bg-card'
                           }`}
                         >
                           <div className="relative">
                             <video
                               src={videosApi.getStreamUrl(video.id)}
-                              className="w-full aspect-video object-cover bg-gray-100"
+                              className="w-full aspect-video object-cover bg-muted"
                               muted
                               onMouseEnter={(e) => e.currentTarget.play()}
                               onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0 }}
                             />
                             {(isSelectedA || isSelectedB) && (
                               <div className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-xs font-bold text-white ${
-                                isSelectedA ? 'bg-blue-500' : 'bg-green-500'
+                                isSelectedA ? 'bg-info' : 'bg-success'
                               }`}>
                                 {isSelectedA ? 'A' : 'B'}
                               </div>
                             )}
                           </div>
-                          <div className="p-1 text-[10px] truncate bg-white border-t text-center">
+                          <div className="p-1 text-[10px] truncate bg-card border-t border-border text-center text-foreground">
                             {(video.name || video.id).slice(0, 8)}...
                           </div>
                         </div>
@@ -510,14 +512,14 @@ export default function TutorialManagement() {
 
               {/* Correct Answer */}
               <div>
-                <label className="block text-sm font-medium mb-1">Correct Answer</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Correct Answer</label>
                 <select
                   value={`${formData.correct_winner}:${formData.correct_degree}`}
                   onChange={(e) => {
                     const [winner, degree] = e.target.value.split(':').map(Number)
                     setFormData({ ...formData, correct_winner: winner, correct_degree: degree })
                   }}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="1:3">A Much More Lame (-3)</option>
                   <option value="1:2">A More Lame (-2)</option>
@@ -531,11 +533,11 @@ export default function TutorialManagement() {
 
               {/* Difficulty */}
               <div>
-                <label className="block text-sm font-medium mb-1">Difficulty</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Difficulty</label>
                 <select
                   value={formData.difficulty}
                   onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                 >
                   <option value="easy">Easy - Obvious difference</option>
                   <option value="medium">Medium - Moderate difference</option>
@@ -546,12 +548,12 @@ export default function TutorialManagement() {
               {/* Tutorial Order */}
               {formData.is_tutorial && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Tutorial Order</label>
+                  <label className="block text-sm font-medium mb-1 text-foreground">Tutorial Order</label>
                   <input
                     type="number"
                     value={formData.tutorial_order}
                     onChange={(e) => setFormData({ ...formData, tutorial_order: parseInt(e.target.value) || 0 })}
-                    className="w-full p-2 border rounded-lg"
+                    className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                     min="0"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -562,11 +564,11 @@ export default function TutorialManagement() {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium mb-1">Description (what to look for)</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Description (what to look for)</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                   rows={2}
                   placeholder="Describe what the rater should observe..."
                 />
@@ -574,18 +576,18 @@ export default function TutorialManagement() {
 
               {/* Hint */}
               <div>
-                <label className="block text-sm font-medium mb-1">Hint (explanation of correct answer)</label>
+                <label className="block text-sm font-medium mb-1 text-foreground">Hint (explanation of correct answer)</label>
                 <textarea
                   value={formData.hint}
                   onChange={(e) => setFormData({ ...formData, hint: e.target.value })}
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
                   rows={3}
                   placeholder="Explain why this is the correct answer..."
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-border">
               <button
                 onClick={() => {
                   setShowCreateModal(false)
@@ -593,14 +595,14 @@ export default function TutorialManagement() {
                   setEditingTask(null)
                   resetForm()
                 }}
-                className="px-4 py-2 border rounded-lg hover:bg-accent"
+                className="px-4 py-2 border border-border rounded-lg hover:bg-accent text-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={showCreateModal ? handleCreate : handleUpdate}
                 disabled={!formData.video_id_1 || !formData.video_id_2}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {showCreateModal ? 'Create' : 'Save Changes'}
               </button>

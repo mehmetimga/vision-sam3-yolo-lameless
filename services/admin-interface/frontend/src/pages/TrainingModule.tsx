@@ -674,15 +674,15 @@ export default function TrainingModule() {
       </div>
 
       {/* View tabs */}
-      <div className="flex border-b">
+      <div className="flex border-b border-border">
         {['training', 'progress', 'leaderboard', ...(user?.role === 'admin' ? ['setup'] : [])].map((v) => (
           <button
             key={v}
             onClick={() => setView(v as any)}
             className={`px-6 py-3 font-medium capitalize ${
               view === v
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {v === 'setup' ? 'Setup (Admin)' : v}
@@ -700,8 +700,8 @@ export default function TrainingModule() {
                 onClick={() => setTrainingMode('comparison')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${
                   trainingMode === 'comparison'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
                 }`}
               >
                 7-Point Scale (Recommended)
@@ -710,17 +710,17 @@ export default function TrainingModule() {
                 onClick={() => setTrainingMode('binary')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium ${
                   trainingMode === 'binary'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
                 }`}
               >
                 Binary (Healthy/Lame)
               </button>
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              currentLevel.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
-              currentLevel.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
+              currentLevel.difficulty === 'easy' ? 'bg-success/20 text-success' :
+              currentLevel.difficulty === 'medium' ? 'bg-warning/20 text-warning' :
+              'bg-destructive/20 text-destructive'
             }`}>
               {currentLevel.difficulty.charAt(0).toUpperCase() + currentLevel.difficulty.slice(1)} Difficulty
             </span>
@@ -729,13 +729,13 @@ export default function TrainingModule() {
           {currentExample && (
             <>
               {/* Question */}
-              <div className="border rounded-lg p-6 bg-white">
-                <h3 className="text-xl font-semibold mb-2">
+              <div className="border border-border rounded-lg p-6 bg-card">
+                <h3 className="text-xl font-semibold mb-2 text-foreground">
                   {trainingMode === 'comparison'
                     ? 'Which cow is more lame?'
                     : 'Is this cow showing lameness?'}
                 </h3>
-                <p className="text-gray-600">{currentExample.description}</p>
+                <p className="text-muted-foreground">{currentExample.description}</p>
 
                 <div className="flex justify-between items-center mt-4">
                   <button
@@ -747,7 +747,7 @@ export default function TrainingModule() {
                 </div>
 
                 {showHint && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg text-blue-700 text-sm">
+                  <div className="mt-4 p-3 bg-primary/10 rounded-lg text-primary text-sm">
                     💡 <strong>Hint:</strong> {currentExample.hint}
                   </div>
                 )}
@@ -758,11 +758,11 @@ export default function TrainingModule() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-center mb-2">
-                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      <span className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
                         Cow A
                       </span>
                     </div>
-                    <div className="border rounded-lg overflow-hidden bg-black">
+                    <div className="border border-border rounded-lg overflow-hidden bg-black">
                       <video
                         ref={videoRef1}
                         src={videosApi.getStreamUrl(currentExample.video_id_1)}
@@ -775,11 +775,11 @@ export default function TrainingModule() {
                   </div>
                   <div>
                     <div className="text-center mb-2">
-                      <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                      <span className="inline-block px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm font-medium">
                         Cow B
                       </span>
                     </div>
-                    <div className="border rounded-lg overflow-hidden bg-black">
+                    <div className="border border-border rounded-lg overflow-hidden bg-black">
                       <video
                         ref={videoRef2}
                         src={videosApi.getStreamUrl(currentExample.video_id_2)}
@@ -813,13 +813,13 @@ export default function TrainingModule() {
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={restartVideos}
-                    className="px-6 py-2 border rounded-lg hover:bg-accent"
+                    className="px-6 py-2 border border-border rounded-lg hover:bg-accent"
                   >
                     ↺ Restart
                   </button>
                   <button
                     onClick={togglePlayback}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                   >
                     {isPlaying ? '⏸ Pause' : '▶ Play'}
                   </button>
@@ -995,7 +995,7 @@ export default function TrainingModule() {
           )}
 
           {/* Training tips */}
-          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+          <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
             <h4 className="font-semibold mb-2">Training Tips</h4>
             <ul className="list-disc list-inside space-y-1">
               <li>Watch both videos completely before making a decision</li>
@@ -1010,12 +1010,12 @@ export default function TrainingModule() {
       {/* Progress View */}
       {view === 'progress' && (
         <div className="space-y-6">
-          <div className="border rounded-lg p-6">
-            <h3 className="text-xl font-bold mb-4">Your Progress</h3>
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Your Progress</h3>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium text-gray-500 mb-2">Statistics</h4>
+                <h4 className="font-medium text-muted-foreground mb-2">Statistics</h4>
                 <dl className="space-y-2">
                   <div className="flex justify-between">
                     <dt>Total Attempts</dt>
@@ -1041,13 +1041,13 @@ export default function TrainingModule() {
               </div>
 
               <div>
-                <h4 className="font-medium text-gray-500 mb-2">Rater Status</h4>
+                <h4 className="font-medium text-muted-foreground mb-2">Rater Status</h4>
                 <div className={`p-4 rounded-lg ${tier.bgColor}`}>
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">{tier.icon}</span>
                     <div>
                       <div className={`text-xl font-bold ${tier.color}`}>{tier.tier} Rater</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {accuracy >= 0.85
                           ? 'Qualified for real labeling tasks!'
                           : `Need ${((0.85 - accuracy) * 100).toFixed(0)}% more accuracy to reach Gold`}
@@ -1057,13 +1057,13 @@ export default function TrainingModule() {
                 </div>
 
                 {accuracy >= 0.85 && (
-                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                    <p className="text-green-800 font-medium">
+                  <div className="mt-4 p-3 bg-success/10 rounded-lg">
+                    <p className="text-success font-medium">
                       🎓 Congratulations! You're now qualified to participate in real pairwise comparisons.
                     </p>
                     <button
                       onClick={() => window.location.href = '/pairwise'}
-                      className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm"
+                      className="mt-2 px-4 py-2 bg-success text-white rounded-lg text-sm"
                     >
                       Go to Pairwise Comparison
                     </button>
@@ -1074,33 +1074,33 @@ export default function TrainingModule() {
           </div>
 
           {/* Level progression */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-xl font-bold mb-4">Level Progression</h3>
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Level Progression</h3>
             <div className="space-y-4">
               {TRAINING_LEVELS.map((level) => (
                 <div
                   key={level.level}
                   className={`flex items-center gap-4 p-3 rounded-lg ${
                     currentLevel.level === level.level
-                      ? 'bg-blue-100 border-2 border-blue-300'
+                      ? 'bg-primary/10 border-2 border-primary/30'
                       : totalScore >= level.minScore
-                        ? 'bg-green-50'
-                        : 'bg-gray-50'
+                        ? 'bg-success/10'
+                        : 'bg-muted/50'
                   }`}
                 >
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    totalScore >= level.minScore ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+                    totalScore >= level.minScore ? 'bg-success text-white' : 'bg-muted text-muted-foreground'
                   }`}>
                     {totalScore >= level.minScore ? '✓' : level.level}
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium">{level.name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="font-medium text-foreground">{level.name}</div>
+                    <div className="text-sm text-muted-foreground">
                       {level.minScore} points required • {level.difficulty} difficulty
                     </div>
                   </div>
                   {currentLevel.level === level.level && (
-                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">Current</span>
+                    <span className="px-2 py-1 bg-primary text-primary-foreground text-xs rounded-full">Current</span>
                   )}
                 </div>
               ))}
@@ -1131,7 +1131,7 @@ export default function TrainingModule() {
 
       {/* Leaderboard View */}
       {view === 'leaderboard' && (
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold">Leaderboard</h3>
             <button
@@ -1153,7 +1153,7 @@ export default function TrainingModule() {
                   <div
                     key={entry.user_id}
                     className={`flex items-center gap-3 p-3 rounded-lg ${
-                      isCurrentUser ? 'bg-blue-100 border-2 border-blue-300' : 'bg-gray-50'
+                      isCurrentUser ? 'bg-primary/10 border-2 border-primary/30' : 'bg-muted/50'
                     }`}
                   >
                     <div className={`w-8 text-center font-bold ${
@@ -1188,8 +1188,8 @@ export default function TrainingModule() {
 
           {/* Add current user if not in leaderboard */}
           {totalAttempts > 0 && !leaderboard.some(e => e.user_id === (user?.id || 'anonymous')) && (
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-100 border-2 border-blue-300">
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border-2 border-primary/30">
                 <div className="w-8 text-center font-bold text-gray-500">—</div>
                 <div className="text-xl">{tier.icon}</div>
                 <div className="flex-1">
@@ -1212,30 +1212,30 @@ export default function TrainingModule() {
         <div className="space-y-6">
           {/* Status */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="border rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-blue-600">{availableVideos.length}</div>
-              <div className="text-sm text-gray-500">Videos Uploaded</div>
+            <div className="border border-border rounded-lg p-4 text-center bg-card">
+              <div className="text-3xl font-bold text-primary">{availableVideos.length}</div>
+              <div className="text-sm text-muted-foreground">Videos Uploaded</div>
             </div>
-            <div className="border rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-green-600">{getTotalExamples()}</div>
-              <div className="text-sm text-gray-500">Training Examples</div>
+            <div className="border border-border rounded-lg p-4 text-center bg-card">
+              <div className="text-3xl font-bold text-success">{getTotalExamples()}</div>
+              <div className="text-sm text-muted-foreground">Training Examples</div>
             </div>
-            <div className="border rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-purple-600">
+            <div className="border border-border rounded-lg p-4 text-center bg-card">
+              <div className="text-3xl font-bold text-secondary-foreground">
                 {trainingExamples.easy.length} / {trainingExamples.medium.length} / {trainingExamples.hard.length}
               </div>
-              <div className="text-sm text-gray-500">Easy / Medium / Hard</div>
+              <div className="text-sm text-muted-foreground">Easy / Medium / Hard</div>
             </div>
           </div>
 
           {/* Upload Videos Section */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-xl font-bold mb-4">Step 1: Upload Videos</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Step 1: Upload Videos</h3>
+            <p className="text-muted-foreground mb-4">
               Upload cow walking videos to use for training examples.
             </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center bg-muted/30">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1283,9 +1283,9 @@ export default function TrainingModule() {
           </div>
 
           {/* Create Training Example Section */}
-          <div className="border rounded-lg p-6">
-            <h3 className="text-xl font-bold mb-4">Step 2: Create Training Example</h3>
-            <p className="text-gray-600 mb-4">
+          <div className="border border-border rounded-lg p-6 bg-card">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Step 2: Create Training Example</h3>
+            <p className="text-muted-foreground mb-4">
               Drag videos from below to the drop zones, then set the correct answer.
             </p>
 
@@ -1391,9 +1391,9 @@ export default function TrainingModule() {
 
             {/* Available Videos - Draggable */}
             {availableVideos.length > 0 && (
-              <div className="mt-6 border-t pt-4">
-                <h4 className="font-medium mb-2">Available Videos ({availableVideos.length}) - Drag to drop zones above</h4>
-                <div className="grid grid-cols-6 gap-2 max-h-64 overflow-y-auto p-2 bg-gray-50 rounded-lg">
+              <div className="mt-6 border-t border-border pt-4">
+                <h4 className="font-medium mb-2 text-foreground">Available Videos ({availableVideos.length}) - Drag to drop zones above</h4>
+                <div className="grid grid-cols-6 gap-2 max-h-64 overflow-y-auto p-2 bg-muted/50 rounded-lg">
                   {availableVideos.map((video) => {
                     const isSelectedA = newExample.video_id_1 === video.video_id
                     const isSelectedB = newExample.video_id_2 === video.video_id
@@ -1406,9 +1406,9 @@ export default function TrainingModule() {
                           e.dataTransfer.effectAllowed = 'copy'
                         }}
                         className={`relative border-2 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all ${
-                          isSelectedA ? 'border-blue-500 ring-2 ring-blue-200' :
-                          isSelectedB ? 'border-green-500 ring-2 ring-green-200' :
-                          'border-gray-200 hover:border-gray-400 hover:shadow-md bg-white'
+                          isSelectedA ? 'border-primary ring-2 ring-primary/30' :
+                          isSelectedB ? 'border-success ring-2 ring-success/30' :
+                          'border-border hover:border-muted-foreground hover:shadow-md bg-card'
                         }`}
                       >
                         <div className="relative">
@@ -1421,13 +1421,13 @@ export default function TrainingModule() {
                           />
                           {(isSelectedA || isSelectedB) && (
                             <div className={`absolute top-1 right-1 px-1.5 py-0.5 rounded text-xs font-bold text-white ${
-                              isSelectedA ? 'bg-blue-500' : 'bg-green-500'
+                              isSelectedA ? 'bg-primary' : 'bg-success'
                             }`}>
                               {isSelectedA ? 'A' : 'B'}
                             </div>
                           )}
                         </div>
-                        <div className="p-1 text-[10px] truncate bg-white border-t text-center">
+                        <div className="p-1 text-[10px] truncate bg-card border-t border-border text-center text-foreground">
                           {(video.filename || video.video_id).slice(0, 8)}...
                         </div>
                       </div>
@@ -1439,14 +1439,14 @@ export default function TrainingModule() {
 
             {/* Correct Answer */}
             <div className="mt-6">
-              <label className="block text-sm font-medium mb-2">Correct Answer (Which cow is more lame?)</label>
+              <label className="block text-sm font-medium mb-2 text-foreground">Correct Answer (Which cow is more lame?)</label>
               <select
                 value={`${newExample.correct_winner}:${newExample.correct_degree}`}
                 onChange={(e) => {
                   const [winner, degree] = e.target.value.split(':').map(Number)
                   setNewExample({ ...newExample, correct_winner: winner, correct_degree: degree })
                 }}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
               >
                 <option value="1:3">A Much More Lame (-3)</option>
                 <option value="1:2">A More Lame (-2)</option>
@@ -1460,11 +1460,11 @@ export default function TrainingModule() {
 
             {/* Difficulty */}
             <div className="mt-4">
-              <label className="block text-sm font-medium mb-2">Difficulty Level</label>
+              <label className="block text-sm font-medium mb-2 text-foreground">Difficulty Level</label>
               <select
                 value={newExample.difficulty}
                 onChange={(e) => setNewExample({ ...newExample, difficulty: e.target.value })}
-                className="w-full p-2 border rounded-lg"
+                className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
               >
                 <option value="easy">Easy (Obvious difference)</option>
                 <option value="medium">Medium (Moderate difference)</option>
@@ -1475,23 +1475,23 @@ export default function TrainingModule() {
             {/* Optional Fields */}
             <div className="mt-4 grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Description (Optional)</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Description (Optional)</label>
                 <input
                   type="text"
                   value={newExample.description}
                   onChange={(e) => setNewExample({ ...newExample, description: e.target.value })}
                   placeholder="e.g., Compare these two cows walking"
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Hint (Optional)</label>
+                <label className="block text-sm font-medium mb-2 text-foreground">Hint (Optional)</label>
                 <input
                   type="text"
                   value={newExample.hint}
                   onChange={(e) => setNewExample({ ...newExample, hint: e.target.value })}
                   placeholder="e.g., Look at the back arch"
-                  className="w-full p-2 border rounded-lg"
+                  className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                 />
               </div>
             </div>
@@ -1501,7 +1501,7 @@ export default function TrainingModule() {
               <button
                 onClick={handleCreateExample}
                 disabled={creatingExample || !newExample.video_id_1 || !newExample.video_id_2}
-                className="w-full py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-success text-white rounded-lg font-medium hover:bg-success/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creatingExample ? 'Creating...' : 'Create Training Example'}
               </button>
@@ -1509,7 +1509,7 @@ export default function TrainingModule() {
           </div>
 
           {/* Existing Examples - Table Format Like TutorialManagement */}
-          <div className="border rounded-lg p-6">
+          <div className="border border-border rounded-lg p-6 bg-card">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Existing Training Examples</h3>
               <button
@@ -1521,7 +1521,7 @@ export default function TrainingModule() {
             </div>
 
             {/* Filter tabs by difficulty */}
-            <div className="flex gap-2 border-b mb-4">
+            <div className="flex gap-2 border-b border-border mb-4">
               {(['all', 'easy', 'medium', 'hard'] as const).map((tab) => {
                 const count = tab === 'all'
                   ? getTotalExamples()
@@ -1548,25 +1548,25 @@ export default function TrainingModule() {
                 <p className="text-sm">Upload videos and create examples above.</p>
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Videos</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Correct Answer</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Difficulty</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Description</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Videos</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Correct Answer</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Difficulty</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Description</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-border">
                     {getFilteredExamples().map((ex) => {
                       const correctValue = ex.correct_winner === 1 ? -ex.correct_degree :
                                           ex.correct_winner === 2 ? ex.correct_degree : 0
                       const answerLabel = SCALE_LABELS.find(s => s.value === correctValue)?.label || 'Equal'
 
                       return (
-                        <tr key={ex.id} className="hover:bg-gray-50">
+                        <tr key={ex.id} className="hover:bg-muted/30">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               {ex.video_id_1 ? (
@@ -1603,17 +1603,17 @@ export default function TrainingModule() {
                           <td className="px-4 py-3 text-sm">{answerLabel}</td>
                           <td className="px-4 py-3">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
-                              ex.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
-                              ex.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
+                              ex.difficulty === 'easy' ? 'bg-success/20 text-success' :
+                              ex.difficulty === 'medium' ? 'bg-warning/20 text-warning' :
+                              'bg-destructive/20 text-destructive'
                             }`}>
                               {ex.difficulty}
                             </span>
                             {ex.is_auto_generated && (
-                              <span className="ml-1 px-1 py-0.5 bg-gray-100 text-gray-500 text-xs rounded">Auto</span>
+                              <span className="ml-1 px-1 py-0.5 bg-muted text-muted-foreground text-xs rounded">Auto</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+                          <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                             {ex.description || '-'}
                           </td>
                           <td className="px-4 py-3">
@@ -1651,14 +1651,14 @@ export default function TrainingModule() {
           {/* Edit Example Modal */}
           {showEditExampleModal && editingExample && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-semibold mb-4">Edit Training Example</h3>
+              <div className="bg-card border border-border rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Edit Training Example</h3>
 
                 <div className="space-y-4">
                   {/* Video Previews */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Video A</label>
+                      <label className="block text-sm font-medium mb-1 text-foreground">Video A</label>
                       {editingExample.video_id_1 ? (
                         <div className="aspect-video bg-black rounded overflow-hidden">
                           <video
@@ -1669,13 +1669,13 @@ export default function TrainingModule() {
                           />
                         </div>
                       ) : (
-                        <div className="aspect-video bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <div className="aspect-video bg-muted rounded flex items-center justify-center text-muted-foreground">
                           No video
                         </div>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Video B</label>
+                      <label className="block text-sm font-medium mb-1 text-foreground">Video B</label>
                       {editingExample.video_id_2 ? (
                         <div className="aspect-video bg-black rounded overflow-hidden">
                           <video
@@ -1686,7 +1686,7 @@ export default function TrainingModule() {
                           />
                         </div>
                       ) : (
-                        <div className="aspect-video bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                        <div className="aspect-video bg-muted rounded flex items-center justify-center text-muted-foreground">
                           No video
                         </div>
                       )}
@@ -1695,14 +1695,14 @@ export default function TrainingModule() {
 
                   {/* Correct Answer */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Correct Answer</label>
+                    <label className="block text-sm font-medium mb-1 text-foreground">Correct Answer</label>
                     <select
                       value={`${editingExample.correct_winner}:${editingExample.correct_degree}`}
                       onChange={(e) => {
                         const [winner, degree] = e.target.value.split(':').map(Number)
                         setEditingExample({ ...editingExample, correct_winner: winner, correct_degree: degree })
                       }}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                     >
                       <option value="1:3">A Much More Lame (-3)</option>
                       <option value="1:2">A More Lame (-2)</option>
@@ -1716,11 +1716,11 @@ export default function TrainingModule() {
 
                   {/* Difficulty */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Difficulty</label>
+                    <label className="block text-sm font-medium mb-1 text-foreground">Difficulty</label>
                     <select
                       value={editingExample.difficulty}
                       onChange={(e) => setEditingExample({ ...editingExample, difficulty: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                     >
                       <option value="easy">Easy - Obvious difference</option>
                       <option value="medium">Medium - Moderate difference</option>
@@ -1730,11 +1730,11 @@ export default function TrainingModule() {
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
+                    <label className="block text-sm font-medium mb-1 text-foreground">Description</label>
                     <textarea
                       value={editingExample.description}
                       onChange={(e) => setEditingExample({ ...editingExample, description: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                       rows={2}
                       placeholder="Describe what the rater should observe..."
                     />
@@ -1742,11 +1742,11 @@ export default function TrainingModule() {
 
                   {/* Hint */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Hint</label>
+                    <label className="block text-sm font-medium mb-1 text-foreground">Hint</label>
                     <textarea
                       value={editingExample.hint}
                       onChange={(e) => setEditingExample({ ...editingExample, hint: e.target.value })}
-                      className="w-full p-2 border rounded-lg"
+                      className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
                       rows={2}
                       placeholder="Explain why this is the correct answer..."
                     />
@@ -1780,15 +1780,15 @@ export default function TrainingModule() {
       {/* Level up modal */}
       {showLevelUp && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 text-center animate-bounce">
+          <div className="bg-card border border-border rounded-xl p-8 text-center animate-bounce shadow-xl">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold mb-2">Level Up!</h2>
-            <p className="text-gray-600 mb-4">
-              You've reached <span className="font-bold text-purple-600">Level {currentLevel.level}: {currentLevel.name}</span>
+            <h2 className="text-2xl font-bold mb-2 text-foreground">Level Up!</h2>
+            <p className="text-muted-foreground mb-4">
+              You've reached <span className="font-bold text-primary">Level {currentLevel.level}: {currentLevel.name}</span>
             </p>
             <button
               onClick={() => setShowLevelUp(false)}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium"
+              className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium"
             >
               Continue Training
             </button>
