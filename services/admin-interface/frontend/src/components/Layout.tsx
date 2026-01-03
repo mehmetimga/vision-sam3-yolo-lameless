@@ -183,6 +183,28 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      {/* Collapse Toggle - Edge Button (outside sidebar to avoid clipping) */}
+      <button
+        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        className={cn(
+          "fixed top-20 z-[999] hidden lg:flex",
+          "w-6 h-6 items-center justify-center",
+          "bg-primary border-2 border-primary-foreground/20 rounded-full shadow-lg",
+          "text-primary-foreground hover:bg-primary/80",
+          "transition-all duration-200 hover:scale-110"
+        )}
+        style={{
+          left: isSidebarCollapsed ? '60px' : '248px'
+        }}
+        title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {isSidebarCollapsed ? (
+          <ChevronRight className="h-3.5 w-3.5" />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5" />
+        )}
+      </button>
+
       {/* Sidebar Navigation */}
       <aside
         ref={sidebarRef}
@@ -251,27 +273,6 @@ export default function Layout({ children }: LayoutProps) {
               )
             })}
         </nav>
-
-        {/* Collapse Toggle */}
-        <div className="p-3 border-t border-border/50 hidden lg:block">
-          <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className={cn(
-              "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl",
-              "text-sm text-muted-foreground hover:text-foreground",
-              "hover:bg-accent/50 transition-all duration-200"
-            )}
-          >
-            {isSidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-        </div>
 
         {/* User Section */}
         <div className="p-3 border-t border-border/50">

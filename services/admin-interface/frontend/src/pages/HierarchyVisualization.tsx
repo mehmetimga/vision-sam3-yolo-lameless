@@ -579,10 +579,10 @@ export default function HierarchyVisualization() {
       {/* Video Preview Popup */}
       {hoveredVideo && (
         <div
-          className="fixed z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden"
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-xl overflow-hidden pointer-events-none"
           style={{
-            left: hoveredVideo.x - 150,
-            top: hoveredVideo.y - 180,
+            left: Math.max(10, Math.min(hoveredVideo.x - 150, window.innerWidth - 320)),
+            top: Math.max(10, hoveredVideo.y - 220),
             width: 300
           }}
         >
