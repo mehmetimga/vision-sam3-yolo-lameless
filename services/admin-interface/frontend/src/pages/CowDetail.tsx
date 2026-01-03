@@ -89,20 +89,20 @@ export default function CowDetail() {
 
   const getSeverityColor = (severity: string | null | undefined): string => {
     switch (severity) {
-      case 'healthy': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
-      case 'mild': return 'bg-amber-100 text-amber-800 border-amber-200'
-      case 'moderate': return 'bg-orange-100 text-orange-800 border-orange-200'
-      case 'severe': return 'bg-red-100 text-red-800 border-red-200'
-      default: return 'bg-gray-100 text-gray-600 border-gray-200'
+      case 'healthy': return 'bg-success/20 text-success border-success/30'
+      case 'mild': return 'bg-warning/20 text-warning border-warning/30'
+      case 'moderate': return 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+      case 'severe': return 'bg-destructive/20 text-destructive border-destructive/30'
+      default: return 'bg-muted text-muted-foreground border-border'
     }
   }
 
   const getTrendInfo = (trend: string): { icon: string; color: string; text: string } => {
     switch (trend) {
-      case 'improving': return { icon: '📈', color: 'text-green-600', text: 'Improving' }
-      case 'worsening': return { icon: '📉', color: 'text-red-600', text: 'Worsening' }
-      case 'stable': return { icon: '➡️', color: 'text-blue-600', text: 'Stable' }
-      default: return { icon: '❓', color: 'text-gray-500', text: 'Unknown' }
+      case 'improving': return { icon: '📈', color: 'text-success', text: 'Improving' }
+      case 'worsening': return { icon: '📉', color: 'text-destructive', text: 'Worsening' }
+      case 'stable': return { icon: '➡️', color: 'text-primary', text: 'Stable' }
+      default: return { icon: '❓', color: 'text-muted-foreground', text: 'Unknown' }
     }
   }
 
@@ -181,11 +181,11 @@ export default function CowDetail() {
               {cow.tag_number ? `🏷️ ${cow.tag_number}` : `🐮 ${cow.cow_id.slice(0, 12)}`}
             </h2>
             {cow.is_active ? (
-              <span className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-full">
+              <span className="px-3 py-1 text-sm bg-success/20 text-success rounded-full">
                 Active
               </span>
             ) : (
-              <span className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full">
+              <span className="px-3 py-1 text-sm bg-muted text-muted-foreground rounded-full">
                 Inactive
               </span>
             )}
@@ -205,7 +205,7 @@ export default function CowDetail() {
 
       {/* Edit Form */}
       {isEditing && (
-        <div className="border rounded-lg p-6 bg-gray-50">
+        <div className="border border-border rounded-lg p-6 bg-muted/50">
           <h3 className="text-lg font-semibold mb-4">Edit Cow Details</h3>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
@@ -215,7 +215,7 @@ export default function CowDetail() {
                 value={editTag}
                 onChange={(e) => setEditTag(e.target.value)}
                 placeholder="e.g., 1234"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
             <div>
@@ -225,7 +225,7 @@ export default function CowDetail() {
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
                 placeholder="Any notes about this cow..."
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
           </div>
@@ -249,7 +249,7 @@ export default function CowDetail() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Current Severity */}
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <p className="text-sm text-muted-foreground mb-2">Current Status</p>
           <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-lg font-medium border ${
             getSeverityColor(prediction?.severity_level)
@@ -265,19 +265,19 @@ export default function CowDetail() {
         </div>
 
         {/* Lameness Score */}
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <p className="text-sm text-muted-foreground mb-2">Lameness Score</p>
           {prediction?.aggregated_score !== undefined ? (
             <>
               <p className="text-3xl font-bold">
                 {(prediction.aggregated_score * 100).toFixed(0)}%
               </p>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+              <div className="w-full bg-muted rounded-full h-2 mt-2">
                 <div
                   className={`h-2 rounded-full transition-all ${
-                    prediction.aggregated_score < 0.3 ? 'bg-emerald-500' :
-                    prediction.aggregated_score < 0.5 ? 'bg-amber-500' :
-                    prediction.aggregated_score < 0.7 ? 'bg-orange-500' : 'bg-red-500'
+                    prediction.aggregated_score < 0.3 ? 'bg-success' :
+                    prediction.aggregated_score < 0.5 ? 'bg-warning' :
+                    prediction.aggregated_score < 0.7 ? 'bg-orange-500' : 'bg-destructive'
                   }`}
                   style={{ width: `${prediction.aggregated_score * 100}%` }}
                 />
@@ -289,7 +289,7 @@ export default function CowDetail() {
         </div>
 
         {/* Trend */}
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <p className="text-sm text-muted-foreground mb-2">Trend ({daysRange}d)</p>
           <div className={`flex items-center gap-2 text-xl font-medium ${trendInfo.color}`}>
             <span className="text-2xl">{trendInfo.icon}</span>
@@ -298,7 +298,7 @@ export default function CowDetail() {
         </div>
 
         {/* Videos */}
-        <div className="border rounded-lg p-6">
+        <div className="border border-border rounded-lg p-6 bg-card">
           <p className="text-sm text-muted-foreground mb-2">Total Videos</p>
           <p className="text-3xl font-bold">{cow.video_count}</p>
           <p className="text-sm text-muted-foreground mt-1">
@@ -309,19 +309,19 @@ export default function CowDetail() {
 
       {/* Dates Info */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-        <div className="border rounded-lg p-4">
+        <div className="border border-border rounded-lg p-4 bg-card">
           <span className="text-muted-foreground">First Seen:</span>
           <span className="ml-2 font-medium">{formatShortDate(cow.first_seen)}</span>
         </div>
-        <div className="border rounded-lg p-4">
+        <div className="border border-border rounded-lg p-4 bg-card">
           <span className="text-muted-foreground">Last Seen:</span>
           <span className="ml-2 font-medium">{formatShortDate(cow.last_seen)}</span>
         </div>
-        <div className="border rounded-lg p-4">
+        <div className="border border-border rounded-lg p-4 bg-card">
           <span className="text-muted-foreground">Total Sightings:</span>
           <span className="ml-2 font-medium">{cow.total_sightings}</span>
         </div>
-        <div className="border rounded-lg p-4">
+        <div className="border border-border rounded-lg p-4 bg-card">
           <span className="text-muted-foreground">Confidence:</span>
           <span className="ml-2 font-medium">
             {prediction?.confidence ? `${(prediction.confidence * 100).toFixed(0)}%` : '—'}
@@ -359,7 +359,7 @@ export default function CowDetail() {
             <select
               value={daysRange}
               onChange={(e) => setDaysRange(Number(e.target.value))}
-              className="px-3 py-1.5 border rounded-lg text-sm"
+              className="px-3 py-1.5 border border-border rounded-lg text-sm bg-card text-foreground"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -370,7 +370,7 @@ export default function CowDetail() {
 
           {/* Timeline Chart (Simplified bar chart) */}
           {timeline.length > 0 && (
-            <div className="border rounded-lg p-6">
+            <div className="border border-border rounded-lg p-6 bg-card">
               <div className="flex items-end gap-1 h-32 mb-4">
                 {timeline.slice(0, 30).reverse().map((entry, idx) => {
                   const score = entry.fusion_score ?? 0.5
@@ -381,13 +381,13 @@ export default function CowDetail() {
                     >
                       <div
                         className={`w-full rounded-t ${
-                          score < 0.3 ? 'bg-emerald-500' :
-                          score < 0.5 ? 'bg-amber-500' :
-                          score < 0.7 ? 'bg-orange-500' : 'bg-red-500'
-                        } ${entry.human_validated ? 'ring-2 ring-blue-400' : ''}`}
+                          score < 0.3 ? 'bg-success' :
+                          score < 0.5 ? 'bg-warning' :
+                          score < 0.7 ? 'bg-orange-500' : 'bg-destructive'
+                        } ${entry.human_validated ? 'ring-2 ring-primary' : ''}`}
                         style={{ height: `${score * 100}%` }}
                       />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-black text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-popover text-popover-foreground text-xs rounded px-2 py-1 whitespace-nowrap z-10 shadow-lg border border-border">
                         {formatShortDate(entry.date)}: {(score * 100).toFixed(0)}%
                         {entry.human_validated && ' ✓'}
                       </div>
@@ -404,13 +404,13 @@ export default function CowDetail() {
 
           {/* Timeline Table */}
           {timeline.length === 0 ? (
-            <div className="text-center py-8 border rounded-lg bg-gray-50">
+            <div className="text-center py-8 border border-border rounded-lg bg-muted/50">
               <p className="text-muted-foreground">No lameness records in this period</p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden bg-card">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Video</th>
@@ -419,9 +419,9 @@ export default function CowDetail() {
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Validated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-border">
                   {timeline.slice(0, 20).map((entry) => (
-                    <tr key={entry.id} className="hover:bg-gray-50">
+                    <tr key={entry.id} className="hover:bg-accent/50">
                       <td className="py-3 px-4 text-sm">
                         {formatDate(entry.date)}
                       </td>
@@ -435,12 +435,12 @@ export default function CowDetail() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-12 bg-gray-200 rounded-full h-2">
+                          <div className="w-12 bg-muted rounded-full h-2">
                             <div
                               className={`h-2 rounded-full ${
-                                (entry.fusion_score ?? 0) < 0.3 ? 'bg-emerald-500' :
-                                (entry.fusion_score ?? 0) < 0.5 ? 'bg-amber-500' :
-                                (entry.fusion_score ?? 0) < 0.7 ? 'bg-orange-500' : 'bg-red-500'
+                                (entry.fusion_score ?? 0) < 0.3 ? 'bg-success' :
+                                (entry.fusion_score ?? 0) < 0.5 ? 'bg-warning' :
+                                (entry.fusion_score ?? 0) < 0.7 ? 'bg-orange-500' : 'bg-destructive'
                               }`}
                               style={{ width: `${(entry.fusion_score ?? 0) * 100}%` }}
                             />
@@ -459,7 +459,7 @@ export default function CowDetail() {
                       </td>
                       <td className="py-3 px-4">
                         {entry.human_validated ? (
-                          <span className="text-green-600">
+                          <span className="text-success">
                             ✓ {entry.human_label ? 'Lame' : 'Sound'}
                           </span>
                         ) : (
@@ -480,13 +480,13 @@ export default function CowDetail() {
           <h3 className="text-lg font-semibold">Video History</h3>
           
           {videos.length === 0 ? (
-            <div className="text-center py-8 border rounded-lg bg-gray-50">
+            <div className="text-center py-8 border border-border rounded-lg bg-muted/50">
               <p className="text-muted-foreground">No videos found for this cow</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {videos.map((video) => (
-                <div key={video.video_id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={video.video_id} className="border border-border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-2">
                     <Link 
                       to={`/results/${video.video_id}`}
@@ -496,10 +496,10 @@ export default function CowDetail() {
                     </Link>
                     {video.lameness_score !== null && video.lameness_score !== undefined && (
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        video.lameness_score < 0.3 ? 'bg-emerald-100 text-emerald-700' :
-                        video.lameness_score < 0.5 ? 'bg-amber-100 text-amber-700' :
-                        video.lameness_score < 0.7 ? 'bg-orange-100 text-orange-700' :
-                        'bg-red-100 text-red-700'
+                        video.lameness_score < 0.3 ? 'bg-success/20 text-success' :
+                        video.lameness_score < 0.5 ? 'bg-warning/20 text-warning' :
+                        video.lameness_score < 0.7 ? 'bg-orange-500/20 text-orange-500' :
+                        'bg-destructive/20 text-destructive'
                       }`}>
                         {(video.lameness_score * 100).toFixed(0)}%
                       </span>
@@ -515,7 +515,7 @@ export default function CowDetail() {
                   </div>
                   <Link
                     to={`/video/${video.video_id}`}
-                    className="block mt-3 text-center py-2 border rounded hover:bg-accent transition-colors text-sm"
+                    className="block mt-3 text-center py-2 border border-border rounded hover:bg-accent transition-colors text-sm"
                   >
                     View Video →
                   </Link>
@@ -532,7 +532,7 @@ export default function CowDetail() {
           
           <div className="grid md:grid-cols-2 gap-6">
             {/* Identity Info */}
-            <div className="border rounded-lg p-6">
+            <div className="border border-border rounded-lg p-6 bg-card">
               <h4 className="font-medium mb-4">Identity Information</h4>
               <dl className="space-y-3">
                 <div className="flex justify-between">
@@ -555,7 +555,7 @@ export default function CowDetail() {
             </div>
 
             {/* Statistics */}
-            <div className="border rounded-lg p-6">
+            <div className="border border-border rounded-lg p-6 bg-card">
               <h4 className="font-medium mb-4">Statistics</h4>
               <dl className="space-y-3">
                 <div className="flex justify-between">
@@ -579,26 +579,26 @@ export default function CowDetail() {
 
             {/* Pipeline Scores (if available) */}
             {prediction && (
-              <div className="border rounded-lg p-6 md:col-span-2">
+              <div className="border border-border rounded-lg p-6 bg-card md:col-span-2">
                 <h4 className="font-medium mb-4">Current Prediction Details</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-gray-50 rounded">
+                  <div className="text-center p-3 bg-muted/50 rounded">
                     <p className="text-2xl font-bold">
                       {(prediction.aggregated_score * 100).toFixed(0)}%
                     </p>
                     <p className="text-sm text-muted-foreground">Aggregated Score</p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded">
+                  <div className="text-center p-3 bg-muted/50 rounded">
                     <p className="text-2xl font-bold">
                       {(prediction.confidence * 100).toFixed(0)}%
                     </p>
                     <p className="text-sm text-muted-foreground">Confidence</p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded">
+                  <div className="text-center p-3 bg-muted/50 rounded">
                     <p className="text-2xl font-bold">{prediction.num_videos}</p>
                     <p className="text-sm text-muted-foreground">Videos Used</p>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded">
+                  <div className="text-center p-3 bg-muted/50 rounded">
                     <p className="text-2xl font-bold capitalize">{prediction.severity_level}</p>
                     <p className="text-sm text-muted-foreground">Severity</p>
                   </div>
@@ -608,7 +608,7 @@ export default function CowDetail() {
 
             {/* Notes */}
             {cow.notes && (
-              <div className="border rounded-lg p-6 md:col-span-2">
+              <div className="border border-border rounded-lg p-6 bg-card md:col-span-2">
                 <h4 className="font-medium mb-2">Notes</h4>
                 <p className="text-muted-foreground">{cow.notes}</p>
               </div>
