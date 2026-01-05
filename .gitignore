@@ -104,3 +104,22 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.auto.tfvars
+terraform/crash.log
+terraform/.terraform.tfstate.lock.info
+
+# AWS
+.aws/
+
+# Secrets (should never be committed)
+*.pem
+*.key
+credentials.json
+secrets.yaml

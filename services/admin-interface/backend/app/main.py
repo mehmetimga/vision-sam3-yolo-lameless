@@ -113,6 +113,83 @@ async def health():
     }
 
 
+# Database seed endpoint (one-time use for initial setup)
+@app.post("/api/seed-db")
+async def seed_database():
+    """
+    Seed the database with initial admin user.
+    This endpoint should only be called once during initial deployment.
+    """
+    from app.database import get_db, User
+    from app.middleware.auth import get_password_hash
+    from sqlalchemy import select
+    import uuid
+    from datetime import datetime
+
+    async for db in get_db():
+        try:
+            # Check if admin already exists
+            result = await db.execute(
+                select(User).where(User.email == "admin@example.com")
+            )
+            if result.scalar_one_or_none():
+                return {"message": "Database already seeded", "status": "skipped"}
+
+            # Create admin user
+            admin = User(
+                id=uuid.UUID("a0000000-0000-0000-0000-000000000001"),
+                email="admin@example.com",
+                username="admin",
+                password_hash=get_password_hash("adminpass123"),
+                role="admin",
+                is_active=True,
+                rater_tier="gold",
+                created_at=datetime.utcnow()
+            )
+            db.add(admin)
+
+            # Create researcher user
+            researcher = User(
+                id=uuid.UUID("a0000000-0000-0000-0000-000000000002"),
+                email="researcher@example.com",
+                username="researcher",
+                password_hash=get_password_hash("researcher123"),
+                role="researcher",
+                is_active=True,
+                rater_tier="gold",
+                created_at=datetime.utcnow()
+            )
+            db.add(researcher)
+
+            # Create rater user
+            rater = User(
+                id=uuid.UUID("a0000000-0000-0000-0000-000000000003"),
+                email="rater@example.com",
+                username="rater",
+                password_hash=get_password_hash("rater123"),
+                role="rater",
+                is_active=True,
+                rater_tier="bronze",
+                created_at=datetime.utcnow()
+            )
+            db.add(rater)
+
+            await db.commit()
+
+            return {
+                "message": "Database seeded successfully",
+                "status": "success",
+                "users_created": [
+                    {"email": "admin@example.com", "role": "admin"},
+                    {"email": "researcher@example.com", "role": "researcher"},
+                    {"email": "rater@example.com", "role": "rater"}
+                ]
+            }
+        except Exception as e:
+            await db.rollback()
+            return {"message": f"Error seeding database: {str(e)}", "status": "error"}
+
+
 # Root
 @app.get("/")
 async def root():

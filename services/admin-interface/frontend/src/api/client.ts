@@ -1,6 +1,8 @@
 import axios, { InternalAxiosRequestConfig } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// In production (no VITE_API_URL set), use relative URLs so ALB routes correctly
+// In development, use localhost:8000
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000')
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

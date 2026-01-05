@@ -43,8 +43,8 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-// API base URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// API base URL - use relative URLs in production (ALB routes), localhost in development
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:8000')
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'access_token'
