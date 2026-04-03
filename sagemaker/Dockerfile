@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    wget git python3 python3-pip \
+    wget git curl python3 python3-pip \
     libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,13 +30,14 @@ RUN pip install --no-cache-dir \
 COPY sagemaker/ /app/sagemaker/
 COPY shared/ /app/shared/
 
+# SageMaker invokes "serve" via the NVIDIA entrypoint
+RUN printf '#!/bin/bash\nexec gunicorn -b 0.0.0.0:8080 -w 1 --timeout 600 sagemaker.serve:app\n' > /usr/local/bin/serve \
+    && chmod +x /usr/local/bin/serve
+
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8080/ping || exit 1
-
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "-w", "1", "--timeout", "600", "sagemaker.serve:app"]
+CMD ["serve"]
