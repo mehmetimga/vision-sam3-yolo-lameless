@@ -77,3 +77,15 @@ variable "image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "sagemaker_endpoint_name" {
+  description = "SageMaker endpoint name (passed to sagemaker-bridge service)"
+  type        = string
+  default     = ""
+}
+
+variable "sagemaker_io_bucket" {
+  description = "S3 bucket for SageMaker async I/O (passed to sagemaker-bridge service)"
+  type        = string
+  default     = ""
+}

@@ -104,7 +104,7 @@ locals {
     }
   }
 
-  # GPU services (run on EC2)
+  # GPU services (run on EC2 when gpu_enabled, ignored when using SageMaker)
   gpu_services = [
     "yolo-pipeline",
     "sam3-pipeline",
@@ -115,6 +115,17 @@ locals {
     "gnn-pipeline",
     "graph-transformer-pipeline"
   ]
+
+  # SageMaker bridge service (added to ECS when SageMaker is enabled)
+  sagemaker_ecs_services = var.sagemaker_enabled ? {
+    "sagemaker-bridge" = {
+      cpu    = 512
+      memory = 1024
+      port   = 8007
+    }
+  } : {}
+
+  all_ecs_services = merge(local.ecs_services, local.sagemaker_ecs_services)
 }
 
 # Networking Module
@@ -167,7 +178,7 @@ module "ecs" {
   vpc_id                  = module.networking.vpc_id
   private_subnet_ids      = module.networking.private_subnet_ids
   ecs_security_group_id   = module.networking.ecs_security_group_id
-  ecs_services            = local.ecs_services
+  ecs_services            = local.all_ecs_services
   ecr_registry            = var.ecr_registry
   efs_file_system_id      = module.storage.efs_file_system_id
   efs_access_point_id     = module.storage.efs_access_point_id
@@ -177,6 +188,8 @@ module "ecs" {
   videos_bucket_name      = module.storage.videos_bucket_name
   cloudfront_domain       = module.storage.cloudfront_domain_name
   image_tag               = var.image_tag
+  sagemaker_endpoint_name = var.sagemaker_enabled ? module.sagemaker[0].endpoint_name : ""
+  sagemaker_io_bucket     = var.sagemaker_enabled ? module.sagemaker[0].sagemaker_io_bucket : ""
 }
 
 # Load Balancer Module
@@ -190,7 +203,7 @@ module "load_balancer" {
   certificate_arn   = var.certificate_arn
 }
 
-# GPU Worker Module
+# GPU Worker Module (EC2-based, used when NOT using SageMaker)
 module "gpu_worker" {
   source = "./modules/gpu_worker"
 
@@ -198,11 +211,25 @@ module "gpu_worker" {
   vpc_id                 = module.networking.vpc_id
   private_subnet_ids     = module.networking.private_subnet_ids
   gpu_security_group_id  = module.networking.gpu_security_group_id
-  gpu_enabled            = var.gpu_enabled
+  gpu_enabled            = var.gpu_enabled && !var.sagemaker_enabled
   gpu_instance_type      = var.gpu_instance_type
   use_spot_instances     = var.use_spot_instances
   efs_file_system_id     = module.storage.efs_file_system_id
   ecr_registry           = var.ecr_registry
   nats_endpoint          = "nats.${local.name_prefix}.local:4222"
   gpu_services           = local.gpu_services
+}
+
+# SageMaker Module (pay-per-use GPU inference with scale-to-zero)
+module "sagemaker" {
+  source = "./modules/sagemaker"
+  count  = var.sagemaker_enabled ? 1 : 0
+
+  name_prefix             = local.name_prefix
+  ecr_registry            = var.ecr_registry
+  private_subnet_ids      = module.networking.private_subnet_ids
+  security_group_id       = module.networking.gpu_security_group_id
+  videos_bucket_name      = module.storage.videos_bucket_name
+  sagemaker_instance_type = var.sagemaker_instance_type
+  sagemaker_max_instances = var.sagemaker_max_instances
 }

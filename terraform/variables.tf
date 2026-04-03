@@ -73,6 +73,25 @@ variable "use_spot_instances" {
   default     = true
 }
 
+# SageMaker Configuration
+variable "sagemaker_enabled" {
+  description = "Use SageMaker async inference instead of EC2 GPU worker (scale-to-zero, pay-per-use)"
+  type        = bool
+  default     = false
+}
+
+variable "sagemaker_instance_type" {
+  description = "SageMaker endpoint instance type"
+  type        = string
+  default     = "ml.g4dn.xlarge"
+}
+
+variable "sagemaker_max_instances" {
+  description = "Maximum SageMaker inference instances for auto-scaling"
+  type        = number
+  default     = 1
+}
+
 # CloudFront Configuration
 variable "enable_cloudfront" {
   description = "Enable CloudFront CDN for video streaming (requires cloudfront:* IAM permissions)"

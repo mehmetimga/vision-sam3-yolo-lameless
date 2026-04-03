@@ -13,7 +13,8 @@ locals {
     "tracking-service",
     "clip-curation",
     "ml-pipeline",
-    "fusion-service"
+    "fusion-service",
+    "sagemaker-bridge"
   ]
 }
 
@@ -101,6 +102,17 @@ resource "aws_ecs_task_definition" "services" {
         {
           name  = "CLOUDFRONT_DOMAIN"
           value = var.cloudfront_domain
+        }
+      ] : [],
+      # SageMaker env vars for the bridge service
+      each.key == "sagemaker-bridge" ? [
+        {
+          name  = "SAGEMAKER_ENDPOINT_NAME"
+          value = var.sagemaker_endpoint_name
+        },
+        {
+          name  = "SAGEMAKER_IO_BUCKET"
+          value = var.sagemaker_io_bucket
         }
       ] : []
       )

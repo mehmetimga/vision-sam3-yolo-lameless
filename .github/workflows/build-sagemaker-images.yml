@@ -1,0 +1,127 @@
+name: Build and Push SageMaker Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (default: latest)'
+        required: false
+        default: 'latest'
+  push:
+    branches:
+      - main
+    paths:
+      - 'sagemaker/**'
+      - 'services/sagemaker-bridge/**'
+      - 'shared/**'
+      - '.github/workflows/build-sagemaker-images.yml'
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  build-gpu-inference:
+    name: Build Unified GPU Inference Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR repository if needed
+        run: |
+          aws ecr describe-repositories --repository-names gpu-inference --region ${{ env.AWS_REGION }} 2>/dev/null || \
+            aws ecr create-repository --repository-name gpu-inference --region ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push GPU inference image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: sagemaker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/gpu-inference:${{ github.event.inputs.tag || 'latest' }}
+            ${{ steps.login-ecr.outputs.registry }}/gpu-inference:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image summary
+        run: |
+          echo "## GPU Inference Image Built" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ steps.login-ecr.outputs.registry }}/gpu-inference" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ github.event.inputs.tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Models:** YOLO, SAM3, DINOv3, T-LEAP" >> $GITHUB_STEP_SUMMARY
+
+  build-sagemaker-bridge:
+    name: Build SageMaker Bridge Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR repository if needed
+        run: |
+          aws ecr describe-repositories --repository-names sagemaker-bridge --region ${{ env.AWS_REGION }} 2>/dev/null || \
+            aws ecr create-repository --repository-name sagemaker-bridge --region ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push bridge image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/sagemaker-bridge/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/sagemaker-bridge:${{ github.event.inputs.tag || 'latest' }}
+            ${{ steps.login-ecr.outputs.registry }}/sagemaker-bridge:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image summary
+        run: |
+          echo "## SageMaker Bridge Image Built" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ steps.login-ecr.outputs.registry }}/sagemaker-bridge" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ github.event.inputs.tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-gpu-inference, build-sagemaker-bridge]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## SageMaker Images Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| gpu-inference | ${{ needs.build-gpu-inference.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| sagemaker-bridge | ${{ needs.build-sagemaker-bridge.result }} |" >> $GITHUB_STEP_SUMMARY
