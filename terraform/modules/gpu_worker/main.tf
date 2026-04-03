@@ -186,9 +186,11 @@ resource "aws_autoscaling_group" "gpu_worker" {
         instance_type = var.gpu_instance_type
       }
 
-      # Fallback instance types - multiple options for better availability
-      override {
-        instance_type = "g4dn.xlarge"
+      dynamic "override" {
+        for_each = var.gpu_instance_type != "g4dn.xlarge" ? ["g4dn.xlarge"] : []
+        content {
+          instance_type = override.value
+        }
       }
 
       override {

@@ -53,6 +53,7 @@ jobs:
           file: sagemaker/Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/gpu-inference:${{ github.event.inputs.tag || 'latest' }}
             ${{ steps.login-ecr.outputs.registry }}/gpu-inference:${{ github.sha }}
@@ -99,6 +100,7 @@ jobs:
           file: services/sagemaker-bridge/Dockerfile
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/sagemaker-bridge:${{ github.event.inputs.tag || 'latest' }}
             ${{ steps.login-ecr.outputs.registry }}/sagemaker-bridge:${{ github.sha }}

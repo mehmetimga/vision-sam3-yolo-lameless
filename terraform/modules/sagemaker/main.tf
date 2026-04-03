@@ -15,10 +15,6 @@ resource "aws_iam_role" "sagemaker" {
       }
     }]
   })
-
-  tags = {
-    Name = "${var.name_prefix}-sagemaker-role"
-  }
 }
 
 resource "aws_iam_role_policy_attachment" "sagemaker_full" {
@@ -75,10 +71,6 @@ resource "aws_iam_role_policy" "sagemaker_custom" {
 resource "aws_s3_bucket" "sagemaker_io" {
   bucket        = "${var.name_prefix}-sagemaker-io"
   force_destroy = true
-
-  tags = {
-    Name = "${var.name_prefix}-sagemaker-io"
-  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "sagemaker_io" {
@@ -106,15 +98,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "sagemaker_io" {
   }
 }
 
-# SNS topic for async inference completion notifications
-resource "aws_sns_topic" "inference_notifications" {
-  name = "${var.name_prefix}-sagemaker-notifications"
-
-  tags = {
-    Name = "${var.name_prefix}-sagemaker-notifications"
-  }
-}
-
 # Unified GPU inference model (all vision pipelines in one container)
 resource "aws_sagemaker_model" "gpu_inference" {
   name               = "${var.name_prefix}-gpu-inference"
@@ -124,20 +107,16 @@ resource "aws_sagemaker_model" "gpu_inference" {
     image = "${var.ecr_registry}/gpu-inference:latest"
     mode  = "SingleModel"
     environment = {
-      SAGEMAKER_MODE       = "true"
-      S3_BUCKET            = aws_s3_bucket.sagemaker_io.id
-      VIDEOS_BUCKET        = var.videos_bucket_name
-      MODEL_CACHE_DIR      = "/opt/ml/model"
+      SAGEMAKER_MODE  = "true"
+      S3_BUCKET       = aws_s3_bucket.sagemaker_io.id
+      VIDEOS_BUCKET   = var.videos_bucket_name
+      MODEL_CACHE_DIR = "/opt/ml/model"
     }
   }
 
   vpc_config {
     security_group_ids = [var.security_group_id]
     subnets            = var.private_subnet_ids
-  }
-
-  tags = {
-    Name = "${var.name_prefix}-gpu-inference"
   }
 }
 
@@ -155,20 +134,11 @@ resource "aws_sagemaker_endpoint_configuration" "gpu_inference" {
   async_inference_config {
     output_config {
       s3_output_path = "s3://${aws_s3_bucket.sagemaker_io.id}/output"
-
-      notification_config {
-        success_topic = aws_sns_topic.inference_notifications.arn
-        error_topic   = aws_sns_topic.inference_notifications.arn
-      }
     }
 
     client_config {
       max_concurrent_invocations_per_instance = 2
     }
-  }
-
-  tags = {
-    Name = "${var.name_prefix}-gpu-inference-config"
   }
 }
 
@@ -176,10 +146,6 @@ resource "aws_sagemaker_endpoint_configuration" "gpu_inference" {
 resource "aws_sagemaker_endpoint" "gpu_inference" {
   name                 = "${var.name_prefix}-gpu-inference"
   endpoint_config_name = aws_sagemaker_endpoint_configuration.gpu_inference.name
-
-  tags = {
-    Name = "${var.name_prefix}-gpu-inference-endpoint"
-  }
 }
 
 # Auto-scaling: scale to 0 when idle, scale to 1 when requests arrive
@@ -221,8 +187,4 @@ resource "aws_appautoscaling_policy" "scale_on_backlog" {
 resource "aws_cloudwatch_log_group" "sagemaker" {
   name              = "/sagemaker/${var.name_prefix}"
   retention_in_days = 30
-
-  tags = {
-    Name = "${var.name_prefix}-sagemaker-logs"
-  }
 }

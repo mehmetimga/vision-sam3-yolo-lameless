@@ -33,6 +33,12 @@ provider "aws" {
   }
 }
 
+# Provider without default_tags for SageMaker (IAM user lacks sagemaker:AddTags)
+provider "aws" {
+  alias  = "no_default_tags"
+  region = var.aws_region
+}
+
 # Data sources
 data "aws_availability_zones" "available" {
   state = "available"
@@ -224,6 +230,10 @@ module "gpu_worker" {
 module "sagemaker" {
   source = "./modules/sagemaker"
   count  = var.sagemaker_enabled ? 1 : 0
+
+  providers = {
+    aws = aws.no_default_tags
+  }
 
   name_prefix             = local.name_prefix
   ecr_registry            = var.ecr_registry
