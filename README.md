@@ -125,6 +125,16 @@ Upload → preprocess/curate → (YOLO, SAM3, DINOv3, T‑LEAP) → {ML, TCN, Tr
 > For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 >
 > For a step-by-step pipeline walkthrough (SAM3, DINOv3, T‑LEAP → ML + tracking/ID), see [docs/PIPELINES_DETAILED.md](docs/PIPELINES_DETAILED.md)
+>
+> For AWS infrastructure and Terraform details, see [docs/AWS_INFRASTRUCTURE.md](docs/AWS_INFRASTRUCTURE.md)
+
+### GPU Deployment Options
+
+| Mode | Cost | Latency | Best For |
+|------|------|---------|----------|
+| **SageMaker** (pay-per-use) | ~$250-300/mo | 5-10 min cold start | Light usage (1-10 videos/day) |
+| **EC2 Spot** (always-on) | ~$360/mo | Instant | Continuous processing |
+| **EC2 On-Demand** | ~$980/mo | Instant | Maximum reliability |
 
 ### Core Components
 
@@ -207,33 +217,64 @@ docker compose -f docker-compose.gpu.yml up -d
 docker compose exec postgres psql -U lameness_user -d lameness_db < scripts/init_db.sql
 ```
 
-### Option 3: GPU-Only Services
+### Option 3: AWS Production (SageMaker - Recommended)
 
-For production GPU deployment on AWS:
+Pay-per-use GPU inference with automatic scale-to-zero. No always-on GPU instance.
+
+```bash
+# Build and push SageMaker images via GitHub Actions
+git push origin main   # triggers .github/workflows/build-sagemaker-images.yml
+
+# Or trigger manually
+gh workflow run build-sagemaker-images.yml
+
+# Deploy infrastructure
+cd terraform
+terraform init && terraform apply
+```
+
+Set in `terraform/terraform.tfvars`:
+```hcl
+sagemaker_enabled = true    # Pay-per-use GPU via SageMaker
+gpu_enabled       = false   # Disable always-on EC2 GPU
+```
+
+See [docs/SAGEMAKER_SETUP.md](docs/SAGEMAKER_SETUP.md) for full SageMaker deployment guide.
+
+### Option 4: AWS Production (EC2 GPU - Always-On)
+
+For heavy/continuous GPU usage with Spot instances:
 
 ```bash
 # Build GPU images
-./scripts/build-gpu-images.sh
-
-# Build and push to ECR
-export ECR_REGISTRY=your-ecr-registry
 ./scripts/build-gpu-images.sh --push --tag=latest
 
-# Enable GPU worker on AWS
-./scripts/gpu-worker.sh start
+# Deploy with GPU EC2
+cd terraform
+terraform apply
 ```
 
-See [docs/GPU_SETUP.md](docs/GPU_SETUP.md) for complete GPU setup instructions.
+Set in `terraform/terraform.tfvars`:
+```hcl
+gpu_enabled        = true
+gpu_instance_type  = "g4dn.xlarge"
+use_spot_instances = true    # ~70% cost savings
+sagemaker_enabled  = false
+```
+
+See [docs/GPU_SETUP.md](docs/GPU_SETUP.md) for EC2 GPU setup instructions.
 
 ### Access Points
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:8000 |
-| API Documentation | http://localhost:8000/docs |
-| NATS Monitoring | http://localhost:8222 |
-| Qdrant Dashboard | http://localhost:6333/dashboard |
+| Frontend (local) | http://localhost:3000 |
+| Backend API (local) | http://localhost:8000 |
+| API Documentation (local) | http://localhost:8000/docs |
+| NATS Monitoring (local) | http://localhost:8222 |
+| Qdrant Dashboard (local) | http://localhost:6333/dashboard |
+| Production Frontend | https://cowhealth.ai |
+| Production API | https://cowhealth.ai/api/ |
 
 ### Default Credentials
 
@@ -271,49 +312,72 @@ python -m uvicorn app.main:app --reload --port 8001
 
 ```
 vision-sam3-yolo-lameless/
-├── services/                    # 22 Microservices
+├── services/                    # Microservices
 │   ├── video-ingestion/         # Upload handling
 │   ├── video-preprocessing/     # YOLO-based cropping
 │   ├── clip-curation/           # 5s canonical clip extraction
-│   ├── yolo-pipeline/           # Object detection
-│   ├── sam3-pipeline/           # Segmentation
-│   ├── dinov3-pipeline/         # Embeddings
-│   ├── tleap-pipeline/          # Pose estimation
+│   ├── yolo-pipeline/           # Object detection (GPU)
+│   ├── sam3-pipeline/           # Segmentation (GPU)
+│   ├── dinov3-pipeline/         # Embeddings (GPU)
+│   ├── tleap-pipeline/          # Pose estimation (GPU)
 │   ├── tcn-pipeline/            # Temporal CNN
 │   ├── transformer-pipeline/    # Gait Transformer
 │   ├── gnn-pipeline/            # GraphGPS
+│   ├── graph-transformer-pipeline/ # Graph Transformer
 │   ├── ml-pipeline/             # XGBoost/CatBoost/LightGBM
 │   ├── fusion-service/          # Prediction fusion
+│   ├── tracking-service/        # ByteTrack + Re-ID
 │   ├── rater-reliability/       # Dawid-Skene/GLAD
 │   ├── shap-service/            # Explainability
 │   ├── llm-service/             # Natural language explanations
 │   ├── training-service/        # Model training orchestration
 │   ├── annotation-renderer/     # Video annotation overlay
+│   ├── sagemaker-bridge/        # NATS → SageMaker orchestrator
 │   └── admin-interface/
 │       ├── backend/             # FastAPI REST API
 │       └── frontend/            # React + TypeScript + Tailwind
+├── sagemaker/                   # SageMaker inference (pay-per-use GPU)
+│   ├── Dockerfile               # Unified GPU container
+│   ├── serve.py                 # Flask inference server
+│   └── handlers/                # Per-model handlers
+│       ├── yolo.py
+│       ├── sam3.py
+│       ├── dinov3.py
+│       └── tleap.py
+├── terraform/                   # AWS infrastructure (IaC)
+│   ├── main.tf                  # Module wiring
+│   ├── variables.tf
+│   ├── terraform.tfvars         # Environment config
+│   └── modules/
+│       ├── networking/          # VPC, subnets, NAT, security groups
+│       ├── ecs/                 # Fargate cluster + services
+│       ├── database/            # RDS PostgreSQL
+│       ├── storage/             # EFS + S3 buckets
+│       ├── load_balancer/       # ALB + HTTPS
+│       ├── secrets/             # Secrets Manager
+│       ├── gpu_worker/          # EC2 GPU ASG (optional)
+│       └── sagemaker/           # SageMaker endpoints (optional)
 ├── shared/                      # Shared code and config
 │   ├── models/
 │   ├── utils/
+│   │   ├── nats_client.py
+│   │   └── sagemaker_client.py
 │   └── config/
-├── data/                        # Data storage
-│   ├── videos/
-│   ├── canonical/               # Curated 5s clips
-│   ├── processed/
-│   ├── training/
-│   ├── results/
-│   └── quality_reports/
+├── data/                        # Data storage (EFS in production)
 ├── docs/                        # Documentation
+│   ├── AWS_INFRASTRUCTURE.md    # Terraform / AWS architecture
+│   ├── SAGEMAKER_SETUP.md       # SageMaker deployment guide
+│   ├── GPU_SETUP.md             # EC2 GPU deployment guide
+│   ├── AWS_RESTART_GUIDE.md     # Service restart procedures
 │   ├── ARCHITECTURE.md
 │   ├── DEPLOYMENT.md
-│   ├── INSTALLATION.md
-│   ├── PIPELINES_DETAILED.md
-│   ├── ML_CONFIGURATION_GUIDE.md
-│   ├── COW_POSE_DATA_GUIDE.md
-│   └── tracking-by-detection.md
-├── research/                    # Research code and papers
-├── docker-compose.yml
-├── environment.yml
+│   └── ...
+├── .github/workflows/           # CI/CD
+│   ├── build-gpu-images.yml
+│   └── build-sagemaker-images.yml
+├── scripts/                     # Operations scripts
+├── docker-compose.yml           # Local CPU mode
+├── docker-compose.gpu.yml       # Local GPU mode
 └── README.md
 ```
 
