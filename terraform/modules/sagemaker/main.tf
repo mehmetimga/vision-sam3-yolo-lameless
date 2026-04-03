@@ -149,7 +149,7 @@ resource "aws_sagemaker_endpoint_configuration" "gpu_inference" {
     variant_name           = "primary"
     model_name             = aws_sagemaker_model.gpu_inference.name
     instance_type          = var.sagemaker_instance_type
-    initial_instance_count = 0
+    initial_instance_count = 1
   }
 
   async_inference_config {
